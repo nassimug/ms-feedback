@@ -1,15 +1,14 @@
 package com.springbootTemplate.univ.soa.repository;
 
 import com.springbootTemplate.univ.soa.model.Feedback;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
+public interface FeedbackRepository extends MongoRepository<Feedback, String> {
 
     /**
      * Récupérer tous les feedbacks d'un utilisateur
@@ -23,9 +22,13 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
 
     /**
      * Calculer la note moyenne d'une recette
+     * MongoDB utilise une agrégation différente
      */
-    @Query("SELECT AVG(f.evaluation) FROM Feedback f WHERE f.recetteId = :recetteId")
-    Double findAverageRatingByRecetteId(@Param("recetteId") String recetteId);
+    @Aggregation(pipeline = {
+            "{ $match: { recetteId: ?0 } }",
+            "{ $group: { _id: null, avgRating: { $avg: '$evaluation' } } }"
+    })
+    Double findAverageRatingByRecetteId(String recetteId);
 
     /**
      * Compter le nombre de feedbacks pour une recette

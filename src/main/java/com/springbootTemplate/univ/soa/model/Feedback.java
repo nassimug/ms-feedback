@@ -1,31 +1,42 @@
 package com.springbootTemplate.univ.soa.model;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.time.LocalDateTime;
 
-@Entity
+@Document(collection = "feedbacks")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Feedback {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
+    @Id
+    private String id;
+
+    @Indexed
     private String userId;
+
+    @Indexed
     private String recetteId;
+
     private Integer evaluation;
+
     private String commentaire;
 
-    @CreationTimestamp
-    private LocalDateTime dateFeedback;
+    @CreatedDate
+    @Builder.Default
+    private LocalDateTime dateFeedback = LocalDateTime.now();
 
-    @UpdateTimestamp
-    private LocalDateTime dateModification;
+    @LastModifiedDate
+    @Builder.Default
+    private LocalDateTime dateModification = LocalDateTime.now();
 }

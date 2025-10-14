@@ -11,10 +11,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Représentation d'un feedback complet")
-public class FeedbackResponseDto {
+public class FeedbackResponse {
 
-    @Schema(description = "Identifiant unique du feedback", example = "1")
-    private Long id;
+    @Schema(description = "Identifiant unique du feedback (MongoDB ObjectId)", example = "507f1f77bcf86cd799439011")
+    private String id;
 
     @Schema(description = "Identifiant de l'utilisateur", example = "user1")
     private String userId;

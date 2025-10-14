@@ -33,20 +33,20 @@ public class FeedbackController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Feedback créé avec succès",
-                    content = @Content(schema = @Schema(implementation = FeedbackResponseDto.class))),
+                    content = @Content(schema = @Schema(implementation = FeedbackResponse.class))),
             @ApiResponse(responseCode = "400", description = "Données invalides"),
             @ApiResponse(responseCode = "500", description = "Erreur serveur")
     })
     @PostMapping
-    public ResponseEntity<FeedbackResponseDto> createFeedback(
+    public ResponseEntity<FeedbackResponse> createFeedback(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Détails du feedback à créer",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = FeedbackCreateDto.class))
+                    content = @Content(schema = @Schema(implementation = FeedbackCreateRequest.class))
             )
-            @Valid @RequestBody FeedbackCreateDto feedbackCreateDto) {
+            @Valid @RequestBody FeedbackCreateRequest feedbackCreateRequest) {
         log.info("POST /api/feedbacks - Création d'un feedback");
-        FeedbackResponseDto response = feedbackService.createFeedback(feedbackCreateDto);
+        FeedbackResponse response = feedbackService.createFeedback(feedbackCreateRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -56,12 +56,12 @@ public class FeedbackController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Liste des feedbacks récupérée avec succès",
-                    content = @Content(schema = @Schema(implementation = FeedbackResponseDto.class)))
+                    content = @Content(schema = @Schema(implementation = FeedbackResponse.class)))
     })
     @GetMapping
-    public ResponseEntity<List<FeedbackResponseDto>> getAllFeedbacks() {
+    public ResponseEntity<List<FeedbackResponse>> getAllFeedbacks() {
         log.info("GET /api/feedbacks - Récupération de tous les feedbacks");
-        List<FeedbackResponseDto> feedbacks = feedbackService.getAllFeedbacks();
+        List<FeedbackResponse> feedbacks = feedbackService.getAllFeedbacks();
         return ResponseEntity.ok(feedbacks);
     }
 
@@ -71,15 +71,15 @@ public class FeedbackController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Feedback trouvé",
-                    content = @Content(schema = @Schema(implementation = FeedbackResponseDto.class))),
+                    content = @Content(schema = @Schema(implementation = FeedbackResponse.class))),
             @ApiResponse(responseCode = "404", description = "Feedback non trouvé")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<FeedbackResponseDto> getFeedbackById(
-            @Parameter(description = "ID du feedback à récupérer", required = true, example = "1")
-            @PathVariable Long id) {
+    public ResponseEntity<FeedbackResponse> getFeedbackById(
+            @Parameter(description = "ID du feedback à récupérer", required = true, example = "507f1f77bcf86cd799439011")
+            @PathVariable String id) {
         log.info("GET /api/feedbacks/{} - Récupération du feedback", id);
-        FeedbackResponseDto feedback = feedbackService.getFeedbackById(id);
+        FeedbackResponse feedback = feedbackService.getFeedbackById(id);
         return ResponseEntity.ok(feedback);
     }
 
@@ -89,14 +89,14 @@ public class FeedbackController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Feedbacks de l'utilisateur récupérés",
-                    content = @Content(schema = @Schema(implementation = FeedbackResponseDto.class)))
+                    content = @Content(schema = @Schema(implementation = FeedbackResponse.class)))
     })
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<FeedbackResponseDto>> getFeedbacksByUserId(
+    public ResponseEntity<List<FeedbackResponse>> getFeedbacksByUserId(
             @Parameter(description = "ID de l'utilisateur", required = true, example = "user1")
             @PathVariable String userId) {
         log.info("GET /api/feedbacks/user/{} - Récupération des feedbacks de l'utilisateur", userId);
-        List<FeedbackResponseDto> feedbacks = feedbackService.getFeedbacksByUserId(userId);
+        List<FeedbackResponse> feedbacks = feedbackService.getFeedbacksByUserId(userId);
         return ResponseEntity.ok(feedbacks);
     }
 
@@ -106,14 +106,14 @@ public class FeedbackController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Feedbacks de la recette récupérés",
-                    content = @Content(schema = @Schema(implementation = FeedbackResponseDto.class)))
+                    content = @Content(schema = @Schema(implementation = FeedbackResponse.class)))
     })
     @GetMapping("/recette/{recetteId}")
-    public ResponseEntity<List<FeedbackResponseDto>> getFeedbacksByRecetteId(
+    public ResponseEntity<List<FeedbackResponse>> getFeedbacksByRecetteId(
             @Parameter(description = "ID de la recette", required = true, example = "recette1")
             @PathVariable String recetteId) {
         log.info("GET /api/feedbacks/recette/{} - Récupération des feedbacks de la recette", recetteId);
-        List<FeedbackResponseDto> feedbacks = feedbackService.getFeedbacksByRecetteId(recetteId);
+        List<FeedbackResponse> feedbacks = feedbackService.getFeedbacksByRecetteId(recetteId);
         return ResponseEntity.ok(feedbacks);
     }
 
@@ -123,14 +123,14 @@ public class FeedbackController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Statistiques calculées avec succès",
-                    content = @Content(schema = @Schema(implementation = AverageRatingDto.class)))
+                    content = @Content(schema = @Schema(implementation = AverageRatingResponse.class)))
     })
     @GetMapping("/recette/{recetteId}/average")
-    public ResponseEntity<AverageRatingDto> getAverageRatingByRecetteId(
+    public ResponseEntity<AverageRatingResponse> getAverageRatingByRecetteId(
             @Parameter(description = "ID de la recette", required = true, example = "recette1")
             @PathVariable String recetteId) {
         log.info("GET /api/feedbacks/recette/{}/average - Calcul de la note moyenne", recetteId);
-        AverageRatingDto averageRating = feedbackService.getAverageRatingByRecetteId(recetteId);
+        AverageRatingResponse averageRating = feedbackService.getAverageRatingByRecetteId(recetteId);
         return ResponseEntity.ok(averageRating);
     }
 
@@ -140,22 +140,22 @@ public class FeedbackController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Feedback mis à jour avec succès",
-                    content = @Content(schema = @Schema(implementation = FeedbackResponseDto.class))),
+                    content = @Content(schema = @Schema(implementation = FeedbackResponse.class))),
             @ApiResponse(responseCode = "404", description = "Feedback non trouvé"),
             @ApiResponse(responseCode = "400", description = "Données invalides")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<FeedbackResponseDto> updateFeedback(
-            @Parameter(description = "ID du feedback à mettre à jour", required = true, example = "1")
-            @PathVariable Long id,
+    public ResponseEntity<FeedbackResponse> updateFeedback(
+            @Parameter(description = "ID du feedback à mettre à jour", required = true, example = "507f1f77bcf86cd799439011")
+            @PathVariable String id,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Nouvelles valeurs pour le feedback",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = FeedbackUpdateDto.class))
+                    content = @Content(schema = @Schema(implementation = FeedbackUpdateRequest.class))
             )
-            @Valid @RequestBody FeedbackUpdateDto feedbackUpdateDto) {
+            @Valid @RequestBody FeedbackUpdateRequest feedbackUpdateRequest) {
         log.info("PUT /api/feedbacks/{} - Mise à jour du feedback", id);
-        FeedbackResponseDto response = feedbackService.updateFeedback(id, feedbackUpdateDto);
+        FeedbackResponse response = feedbackService.updateFeedback(id, feedbackUpdateRequest);
         return ResponseEntity.ok(response);
     }
 
@@ -169,8 +169,8 @@ public class FeedbackController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFeedback(
-            @Parameter(description = "ID du feedback à supprimer", required = true, example = "1")
-            @PathVariable Long id) {
+            @Parameter(description = "ID du feedback à supprimer", required = true, example = "507f1f77bcf86cd799439011")
+            @PathVariable String id) {
         log.info("DELETE /api/feedbacks/{} - Suppression du feedback", id);
         feedbackService.deleteFeedback(id);
         return ResponseEntity.noContent().build();
@@ -178,7 +178,7 @@ public class FeedbackController {
 
     @Operation(
             summary = "Envoyer les feedbacks au service de recommandation",
-            description = "Envoie les feedbacks récents au service d'apprentissage par renforcement (RL) pour améliorer les recommandations"
+            description = "⚠️ En développement - Envoie les feedbacks récents au service d'apprentissage par renforcement (RL) pour améliorer les recommandations"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Feedbacks envoyés avec succès"),
@@ -187,8 +187,15 @@ public class FeedbackController {
     @PostMapping("/send-to-recommendation")
     public ResponseEntity<String> sendFeedbacksToRecommendation() {
         log.info("POST /api/feedbacks/send-to-recommendation - Envoi des feedbacks au service RL");
-        feedbackService.sendFeedbacksToRecommendationService();
-        return ResponseEntity.ok("Feedbacks envoyés avec succès au service de recommandation");
+
+        try {
+            feedbackService.sendFeedbacksToRecommendationService();
+            return ResponseEntity.ok("✅ Feedbacks envoyés avec succès au service de recommandation");
+        } catch (Exception e) {
+            log.warn("⚠️ Service de recommandation non disponible: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("⚠️ Service de recommandation temporairement indisponible. Les feedbacks sont sauvegardés et seront synchronisés ultérieurement.");
+        }
     }
 
     @Operation(

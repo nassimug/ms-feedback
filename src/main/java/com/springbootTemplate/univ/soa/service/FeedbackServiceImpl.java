@@ -2,123 +2,106 @@ package com.springbootTemplate.univ.soa.service;
 
 import com.springbootTemplate.univ.soa.dto.*;
 import com.springbootTemplate.univ.soa.exception.FeedbackNotFoundException;
+import com.springbootTemplate.univ.soa.factory.FeedbackFactory;
 import com.springbootTemplate.univ.soa.model.Feedback;
 import com.springbootTemplate.univ.soa.repository.FeedbackRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class FeedbackServiceImpl implements FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
+    private final FeedbackFactory feedbackFactory;
     private final RestTemplate restTemplate;
 
     @Value("${recommendation.service.url}")
     private String recommendationServiceUrl;
 
     @Override
-    public FeedbackResponseDto createFeedback(FeedbackCreateDto feedbackCreateDto) {
-        log.info("Création d'un nouveau feedback pour la recette: {}", feedbackCreateDto.getRecetteId());
+    public FeedbackResponse createFeedback(FeedbackCreateRequest feedbackCreateRequest) {
+        log.info("Création d'un nouveau feedback pour la recette: {}", feedbackCreateRequest.getRecetteId());
 
-        Feedback feedback = new Feedback();
-        feedback.setUserId(feedbackCreateDto.getUserId());
-        feedback.setRecetteId(feedbackCreateDto.getRecetteId());
-        feedback.setEvaluation(feedbackCreateDto.getEvaluation());
-        feedback.setCommentaire(feedbackCreateDto.getCommentaire());
-
+        // Utilisation de la Factory pour créer l'entité
+        Feedback feedback = feedbackFactory.createFeedback(feedbackCreateRequest);
         Feedback savedFeedback = feedbackRepository.save(feedback);
+
         log.info("✅ Feedback créé avec succès - ID: {}", savedFeedback.getId());
 
-        return convertToDto(savedFeedback);
+        // Utilisation de la Factory pour créer le DTO de réponse
+        return feedbackFactory.createResponseDto(savedFeedback);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<FeedbackResponseDto> getAllFeedbacks() {
+    public List<FeedbackResponse> getAllFeedbacks() {
         log.info("Récupération de tous les feedbacks");
-        return feedbackRepository.findAll()
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        return feedbackFactory.createResponseDtoList(feedbackRepository.findAll());
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public FeedbackResponseDto getFeedbackById(Long id) {
+    public FeedbackResponse getFeedbackById(String id) {
         log.info("Récupération du feedback avec l'ID: {}", id);
-        Feedback feedback = feedbackRepository.findById(id)
-                .orElseThrow(() -> new FeedbackNotFoundException("Feedback non trouvé avec l'ID: " + id));
-        return convertToDto(feedback);
+        return feedbackFactory.createResponseDto(findFeedbackOrThrow(id));
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<FeedbackResponseDto> getFeedbacksByUserId(String userId) {
+    public List<FeedbackResponse> getFeedbacksByUserId(String userId) {
         log.info("Récupération des feedbacks de l'utilisateur: {}", userId);
-        return feedbackRepository.findByUserIdOrderByDateFeedbackDesc(userId)
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        return feedbackFactory.createResponseDtoList(
+                feedbackRepository.findByUserIdOrderByDateFeedbackDesc(userId)
+        );
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<FeedbackResponseDto> getFeedbacksByRecetteId(String recetteId) {
+    public List<FeedbackResponse> getFeedbacksByRecetteId(String recetteId) {
         log.info("Récupération des feedbacks de la recette: {}", recetteId);
-        return feedbackRepository.findByRecetteIdOrderByDateFeedbackDesc(recetteId)
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        return feedbackFactory.createResponseDtoList(
+                feedbackRepository.findByRecetteIdOrderByDateFeedbackDesc(recetteId)
+        );
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public AverageRatingDto getAverageRatingByRecetteId(String recetteId) {
+    public AverageRatingResponse getAverageRatingByRecetteId(String recetteId) {
         log.info("Calcul de la note moyenne pour la recette: {}", recetteId);
 
         Double averageRating = feedbackRepository.findAverageRatingByRecetteId(recetteId);
         Long totalFeedbacks = feedbackRepository.countByRecetteId(recetteId);
 
-        AverageRatingDto dto = new AverageRatingDto();
-        dto.setRecetteId(recetteId);
-        dto.setAverageRating(averageRating != null ? Math.round(averageRating * 100.0) / 100.0 : 0.0);
-        dto.setTotalFeedbacks(totalFeedbacks != null ? totalFeedbacks : 0L);
-
-        return dto;
+        // Utilisation de la Factory pour créer le DTO de statistiques
+        return feedbackFactory.createAverageRatingDto(recetteId, averageRating, totalFeedbacks);
     }
 
     @Override
-    public FeedbackResponseDto updateFeedback(Long id, FeedbackUpdateDto feedbackUpdateDto) {
+    public FeedbackResponse updateFeedback(String id, FeedbackUpdateRequest feedbackUpdateRequest) {
         log.info("Mise à jour du feedback avec l'ID: {}", id);
 
-        Feedback feedback = feedbackRepository.findById(id)
-                .orElseThrow(() -> new FeedbackNotFoundException("Feedback non trouvé avec l'ID: " + id));
+        Feedback original = findFeedbackOrThrow(id);
 
-        if (feedbackUpdateDto.getEvaluation() != null) {
-            feedback.setEvaluation(feedbackUpdateDto.getEvaluation());
-        }
-        if (feedbackUpdateDto.getCommentaire() != null) {
-            feedback.setCommentaire(feedbackUpdateDto.getCommentaire());
-        }
+        // Utilisation de la Factory pour créer un feedback mis à jour
+        Feedback updatedFeedback = feedbackFactory.createUpdatedFeedback(
+                original,
+                feedbackUpdateRequest.getEvaluation(),
+                feedbackUpdateRequest.getCommentaire()
+        );
 
-        Feedback updatedFeedback = feedbackRepository.save(feedback);
-        log.info("✅ Feedback mis à jour avec succès - ID: {}", updatedFeedback.getId());
+        Feedback saved = feedbackRepository.save(updatedFeedback);
+        log.info("✅ Feedback mis à jour avec succès - ID: {}", saved.getId());
 
-        return convertToDto(updatedFeedback);
+        return feedbackFactory.createResponseDto(saved);
     }
 
     @Override
-    public void deleteFeedback(Long id) {
+    public void deleteFeedback(String id) {
         log.info("Suppression du feedback avec l'ID: {}", id);
 
         if (!feedbackRepository.existsById(id)) {
@@ -136,25 +119,64 @@ public class FeedbackServiceImpl implements FeedbackService {
         try {
             List<Feedback> recentFeedbacks = feedbackRepository.findTop100ByOrderByDateFeedbackDesc();
 
-            String url = recommendationServiceUrl + "/api/recommendations/update-model";
-            restTemplate.postForObject(url, recentFeedbacks, String.class);
+            if (recentFeedbacks.isEmpty()) {
+                log.info("ℹ️ Aucun feedback à envoyer");
+                return;
+            }
 
-            log.info("✅ {} feedbacks envoyés au service de recommandation", recentFeedbacks.size());
+            sendFeedbacksToExternalService(recentFeedbacks);
+
+            log.info("✅ {} feedbacks envoyés au service de recommandation avec succès", recentFeedbacks.size());
+        } catch (ResourceAccessException e) {
+            handleConnectionError(e);
+        } catch (HttpClientErrorException e) {
+            handleClientError(e);
+        } catch (HttpServerErrorException e) {
+            handleServerError(e);
         } catch (Exception e) {
-            log.error("❌ Erreur lors de l'envoi des feedbacks au service de recommandation: {}", e.getMessage());
-            throw new RuntimeException("Erreur lors de la communication avec le service de recommandation", e);
+            handleUnexpectedError(e);
         }
     }
 
-    private FeedbackResponseDto convertToDto(Feedback feedback) {
-        FeedbackResponseDto dto = new FeedbackResponseDto();
-        dto.setId(feedback.getId());
-        dto.setUserId(feedback.getUserId());
-        dto.setRecetteId(feedback.getRecetteId());
-        dto.setEvaluation(feedback.getEvaluation());
-        dto.setCommentaire(feedback.getCommentaire());
-        dto.setDateFeedback(feedback.getDateFeedback());
-        dto.setDateModification(feedback.getDateModification());
-        return dto;
+    // ========================================
+    // MÉTHODES PRIVÉES - UTILITAIRES
+    // ========================================
+
+    private Feedback findFeedbackOrThrow(String id) {
+        return feedbackRepository.findById(id)
+                .orElseThrow(() -> new FeedbackNotFoundException("Feedback non trouvé avec l'ID: " + id));
+    }
+
+    private void sendFeedbacksToExternalService(List<Feedback> feedbacks) {
+        String url = recommendationServiceUrl + "/api/recommendations/update-model";
+        log.info("🔄 Tentative d'envoi de {} feedbacks vers {}", feedbacks.size(), url);
+        restTemplate.postForObject(url, feedbacks, String.class);
+    }
+
+    // ========================================
+    // GESTION DES ERREURS HTTP
+    // ========================================
+
+    private void handleConnectionError(ResourceAccessException e) {
+        log.warn("⚠️ Service de recommandation non accessible: {}", e.getMessage());
+        throw new RuntimeException(
+                "Service de recommandation non disponible. Veuillez vérifier que le service est démarré sur " + recommendationServiceUrl,
+                e
+        );
+    }
+
+    private void handleClientError(HttpClientErrorException e) {
+        log.error("❌ Erreur client (status: {}): {}", e.getStatusCode(), e.getMessage());
+        throw new RuntimeException("Erreur lors de l'envoi des feedbacks: " + e.getStatusCode(), e);
+    }
+
+    private void handleServerError(HttpServerErrorException e) {
+        log.error("❌ Erreur serveur (status: {}): {}", e.getStatusCode(), e.getMessage());
+        throw new RuntimeException("Le service de recommandation a rencontré une erreur: " + e.getStatusCode(), e);
+    }
+
+    private void handleUnexpectedError(Exception e) {
+        log.error("❌ Erreur inattendue: {}", e.getMessage(), e);
+        throw new RuntimeException("Erreur lors de la communication avec le service de recommandation", e);
     }
 }

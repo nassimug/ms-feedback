@@ -2,8 +2,8 @@ package com.springbootTemplate.univ.soa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.springbootTemplate.univ.soa.controller.FeedbackController;
-import com.springbootTemplate.univ.soa.dto.FeedbackCreateDto;
-import com.springbootTemplate.univ.soa.dto.FeedbackResponseDto;
+import com.springbootTemplate.univ.soa.dto.FeedbackCreateRequest;
+import com.springbootTemplate.univ.soa.dto.FeedbackResponse;
 import com.springbootTemplate.univ.soa.service.FeedbackService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,37 +33,37 @@ class FeedbackControllerTest {
     @MockBean
     private FeedbackService feedbackService;
 
-    private FeedbackResponseDto feedbackResponseDto;
-    private FeedbackCreateDto feedbackCreateDto;
+    private FeedbackResponse feedbackResponse;
+    private FeedbackCreateRequest feedbackCreateRequest;
 
     @BeforeEach
     void setUp() {
-        feedbackResponseDto = new FeedbackResponseDto();
-        feedbackResponseDto.setId(1L);
-        feedbackResponseDto.setUserId("user123");
-        feedbackResponseDto.setRecetteId("recette456");
-        feedbackResponseDto.setEvaluation(5);
-        feedbackResponseDto.setCommentaire("Excellente recette !");
-        feedbackResponseDto.setDateFeedback(LocalDateTime.now());
+        feedbackResponse = new FeedbackResponse();
+        feedbackResponse.setId("507f1f77bcf86cd799439011"); // MongoDB ObjectId
+        feedbackResponse.setUserId("user123");
+        feedbackResponse.setRecetteId("recette456");
+        feedbackResponse.setEvaluation(5);
+        feedbackResponse.setCommentaire("Excellente recette !");
+        feedbackResponse.setDateFeedback(LocalDateTime.now());
 
-        feedbackCreateDto = new FeedbackCreateDto();
-        feedbackCreateDto.setUserId("user123");
-        feedbackCreateDto.setRecetteId("recette456");
-        feedbackCreateDto.setEvaluation(5);
-        feedbackCreateDto.setCommentaire("Excellente recette !");
+        feedbackCreateRequest = new FeedbackCreateRequest();
+        feedbackCreateRequest.setUserId("user123");
+        feedbackCreateRequest.setRecetteId("recette456");
+        feedbackCreateRequest.setEvaluation(5);
+        feedbackCreateRequest.setCommentaire("Excellente recette !");
     }
 
     @Test
     void createFeedback_ShouldReturnCreated() throws Exception {
         // Given
-        when(feedbackService.createFeedback(any(FeedbackCreateDto.class))).thenReturn(feedbackResponseDto);
+        when(feedbackService.createFeedback(any(FeedbackCreateRequest.class))).thenReturn(feedbackResponse);
 
         // When & Then
         mockMvc.perform(post("/api/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(feedbackCreateDto)))
+                        .content(objectMapper.writeValueAsString(feedbackCreateRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.id").value("507f1f77bcf86cd799439011"))
                 .andExpect(jsonPath("$.userId").value("user123"))
                 .andExpect(jsonPath("$.recetteId").value("recette456"))
                 .andExpect(jsonPath("$.evaluation").value(5));
@@ -72,43 +72,47 @@ class FeedbackControllerTest {
     @Test
     void createFeedback_ShouldReturnBadRequest_WhenInvalidData() throws Exception {
         // Given - Invalid evaluation (0)
-        feedbackCreateDto.setEvaluation(0);
+        feedbackCreateRequest.setEvaluation(0);
 
         // When & Then
         mockMvc.perform(post("/api/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(feedbackCreateDto)))
+                        .content(objectMapper.writeValueAsString(feedbackCreateRequest)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void getAllFeedbacks_ShouldReturnListOfFeedbacks() throws Exception {
         // Given
-        when(feedbackService.getAllFeedbacks()).thenReturn(Arrays.asList(feedbackResponseDto));
+        when(feedbackService.getAllFeedbacks()).thenReturn(Arrays.asList(feedbackResponse));
 
         // When & Then
         mockMvc.perform(get("/api/feedbacks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].id").value("507f1f77bcf86cd799439011"))
                 .andExpect(jsonPath("$[0].userId").value("user123"));
     }
 
     @Test
     void getFeedbackById_ShouldReturnFeedback() throws Exception {
         // Given
-        when(feedbackService.getFeedbackById(1L)).thenReturn(feedbackResponseDto);
+        String feedbackId = "507f1f77bcf86cd799439011";
+        when(feedbackService.getFeedbackById(feedbackId)).thenReturn(feedbackResponse);
 
         // When & Then
-        mockMvc.perform(get("/api/feedbacks/1"))
+        mockMvc.perform(get("/api/feedbacks/" + feedbackId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.id").value(feedbackId))
                 .andExpect(jsonPath("$.userId").value("user123"));
     }
 
     @Test
     void deleteFeedback_ShouldReturnNoContent() throws Exception {
+        // Given
+        String feedbackId = "507f1f77bcf86cd799439011";
+
         // When & Then
-        mockMvc.perform(delete("/api/feedbacks/1"))
+        mockMvc.perform(delete("/api/feedbacks/" + feedbackId))
                 .andExpect(status().isNoContent());
     }
 }

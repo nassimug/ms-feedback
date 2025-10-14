@@ -1,8 +1,8 @@
 package com.springbootTemplate.univ.soa;
 
-import com.springbootTemplate.univ.soa.dto.FeedbackCreateDto;
-import com.springbootTemplate.univ.soa.dto.FeedbackResponseDto;
-import com.springbootTemplate.univ.soa.dto.FeedbackUpdateDto;
+import com.springbootTemplate.univ.soa.dto.FeedbackCreateRequest;
+import com.springbootTemplate.univ.soa.dto.FeedbackResponse;
+import com.springbootTemplate.univ.soa.dto.FeedbackUpdateRequest;
 import com.springbootTemplate.univ.soa.exception.FeedbackNotFoundException;
 import com.springbootTemplate.univ.soa.model.Feedback;
 import com.springbootTemplate.univ.soa.repository.FeedbackRepository;
@@ -38,23 +38,24 @@ class FeedbackServiceTest {
     private FeedbackServiceImpl feedbackService;
 
     private Feedback feedback;
-    private FeedbackCreateDto feedbackCreateDto;
+    private FeedbackCreateRequest feedbackCreateRequest;
 
     @BeforeEach
     void setUp() {
         feedback = new Feedback();
-        feedback.setId(1L);
+        feedback.setId("507f1f77bcf86cd799439011"); // MongoDB ObjectId
         feedback.setUserId("user123");
         feedback.setRecetteId("recette456");
         feedback.setEvaluation(5);
         feedback.setCommentaire("Excellente recette !");
         feedback.setDateFeedback(LocalDateTime.now());
+        feedback.setDateModification(LocalDateTime.now());
 
-        feedbackCreateDto = new FeedbackCreateDto();
-        feedbackCreateDto.setUserId("user123");
-        feedbackCreateDto.setRecetteId("recette456");
-        feedbackCreateDto.setEvaluation(5);
-        feedbackCreateDto.setCommentaire("Excellente recette !");
+        feedbackCreateRequest = new FeedbackCreateRequest();
+        feedbackCreateRequest.setUserId("user123");
+        feedbackCreateRequest.setRecetteId("recette456");
+        feedbackCreateRequest.setEvaluation(5);
+        feedbackCreateRequest.setCommentaire("Excellente recette !");
     }
 
     @Test
@@ -63,7 +64,7 @@ class FeedbackServiceTest {
         when(feedbackRepository.save(any(Feedback.class))).thenReturn(feedback);
 
         // When
-        FeedbackResponseDto result = feedbackService.createFeedback(feedbackCreateDto);
+        FeedbackResponse result = feedbackService.createFeedback(feedbackCreateRequest);
 
         // Then
         assertThat(result).isNotNull();
@@ -80,7 +81,7 @@ class FeedbackServiceTest {
         when(feedbackRepository.findAll()).thenReturn(feedbacks);
 
         // When
-        List<FeedbackResponseDto> result = feedbackService.getAllFeedbacks();
+        List<FeedbackResponse> result = feedbackService.getAllFeedbacks();
 
         // Then
         assertThat(result).isNotEmpty();
@@ -92,28 +93,30 @@ class FeedbackServiceTest {
     @Test
     void getFeedbackById_ShouldReturnFeedback_WhenExists() {
         // Given
-        when(feedbackRepository.findById(1L)).thenReturn(Optional.of(feedback));
+        String feedbackId = "507f1f77bcf86cd799439011";
+        when(feedbackRepository.findById(feedbackId)).thenReturn(Optional.of(feedback));
 
         // When
-        FeedbackResponseDto result = feedbackService.getFeedbackById(1L);
+        FeedbackResponse result = feedbackService.getFeedbackById(feedbackId);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(1L);
+        assertThat(result.getId()).isEqualTo(feedbackId);
         assertThat(result.getUserId()).isEqualTo("user123");
-        verify(feedbackRepository, times(1)).findById(1L);
+        verify(feedbackRepository, times(1)).findById(feedbackId);
     }
 
     @Test
     void getFeedbackById_ShouldThrowException_WhenNotFound() {
         // Given
-        when(feedbackRepository.findById(1L)).thenReturn(Optional.empty());
+        String feedbackId = "507f1f77bcf86cd799439011";
+        when(feedbackRepository.findById(feedbackId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> feedbackService.getFeedbackById(1L))
+        assertThatThrownBy(() -> feedbackService.getFeedbackById(feedbackId))
                 .isInstanceOf(FeedbackNotFoundException.class)
-                .hasMessageContaining("Feedback non trouvé avec l'ID: 1");
-        verify(feedbackRepository, times(1)).findById(1L);
+                .hasMessageContaining("Feedback non trouvé avec l'ID: " + feedbackId);
+        verify(feedbackRepository, times(1)).findById(feedbackId);
     }
 
     @Test
@@ -123,7 +126,7 @@ class FeedbackServiceTest {
         when(feedbackRepository.findByUserIdOrderByDateFeedbackDesc("user123")).thenReturn(feedbacks);
 
         // When
-        List<FeedbackResponseDto> result = feedbackService.getFeedbacksByUserId("user123");
+        List<FeedbackResponse> result = feedbackService.getFeedbacksByUserId("user123");
 
         // Then
         assertThat(result).isNotEmpty();
@@ -139,7 +142,7 @@ class FeedbackServiceTest {
         when(feedbackRepository.findByRecetteIdOrderByDateFeedbackDesc("recette456")).thenReturn(feedbacks);
 
         // When
-        List<FeedbackResponseDto> result = feedbackService.getFeedbacksByRecetteId("recette456");
+        List<FeedbackResponse> result = feedbackService.getFeedbacksByRecetteId("recette456");
 
         // Then
         assertThat(result).isNotEmpty();
@@ -151,46 +154,49 @@ class FeedbackServiceTest {
     @Test
     void updateFeedback_ShouldReturnUpdatedFeedback() {
         // Given
-        FeedbackUpdateDto updateDto = new FeedbackUpdateDto();
+        String feedbackId = "507f1f77bcf86cd799439011";
+        FeedbackUpdateRequest updateDto = new FeedbackUpdateRequest();
         updateDto.setEvaluation(4);
         updateDto.setCommentaire("Mise à jour du commentaire");
 
-        when(feedbackRepository.findById(1L)).thenReturn(Optional.of(feedback));
+        when(feedbackRepository.findById(feedbackId)).thenReturn(Optional.of(feedback));
         when(feedbackRepository.save(any(Feedback.class))).thenReturn(feedback);
 
         // When
-        FeedbackResponseDto result = feedbackService.updateFeedback(1L, updateDto);
+        FeedbackResponse result = feedbackService.updateFeedback(feedbackId, updateDto);
 
         // Then
         assertThat(result).isNotNull();
-        verify(feedbackRepository, times(1)).findById(1L);
+        verify(feedbackRepository, times(1)).findById(feedbackId);
         verify(feedbackRepository, times(1)).save(any(Feedback.class));
     }
 
     @Test
     void deleteFeedback_ShouldDeleteFeedback_WhenExists() {
         // Given
-        when(feedbackRepository.existsById(1L)).thenReturn(true);
-        doNothing().when(feedbackRepository).deleteById(1L);
+        String feedbackId = "507f1f77bcf86cd799439011";
+        when(feedbackRepository.existsById(feedbackId)).thenReturn(true);
+        doNothing().when(feedbackRepository).deleteById(feedbackId);
 
         // When
-        feedbackService.deleteFeedback(1L);
+        feedbackService.deleteFeedback(feedbackId);
 
         // Then
-        verify(feedbackRepository, times(1)).existsById(1L);
-        verify(feedbackRepository, times(1)).deleteById(1L);
+        verify(feedbackRepository, times(1)).existsById(feedbackId);
+        verify(feedbackRepository, times(1)).deleteById(feedbackId);
     }
 
     @Test
     void deleteFeedback_ShouldThrowException_WhenNotFound() {
         // Given
-        when(feedbackRepository.existsById(1L)).thenReturn(false);
+        String feedbackId = "507f1f77bcf86cd799439011";
+        when(feedbackRepository.existsById(feedbackId)).thenReturn(false);
 
         // When & Then
-        assertThatThrownBy(() -> feedbackService.deleteFeedback(1L))
+        assertThatThrownBy(() -> feedbackService.deleteFeedback(feedbackId))
                 .isInstanceOf(FeedbackNotFoundException.class)
-                .hasMessageContaining("Feedback non trouvé avec l'ID: 1");
-        verify(feedbackRepository, times(1)).existsById(1L);
-        verify(feedbackRepository, never()).deleteById(1L);
+                .hasMessageContaining("Feedback non trouvé avec l'ID: " + feedbackId);
+        verify(feedbackRepository, times(1)).existsById(feedbackId);
+        verify(feedbackRepository, never()).deleteById(feedbackId);
     }
 }

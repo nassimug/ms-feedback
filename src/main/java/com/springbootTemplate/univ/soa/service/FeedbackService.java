@@ -1,27 +1,26 @@
 package com.springbootTemplate.univ.soa.service;
 
 import com.springbootTemplate.univ.soa.dto.*;
-import com.springbootTemplate.univ.soa.model.Feedback;
 
 import java.util.List;
 
 public interface FeedbackService {
 
-    FeedbackResponseDto createFeedback(FeedbackCreateDto feedbackCreateDto);
+    FeedbackResponse createFeedback(FeedbackCreateRequest feedbackCreateRequest);
 
-    List<FeedbackResponseDto> getAllFeedbacks();
+    List<FeedbackResponse> getAllFeedbacks();
 
-    FeedbackResponseDto getFeedbackById(Long id);
+    FeedbackResponse getFeedbackById(String id);
 
-    List<FeedbackResponseDto> getFeedbacksByUserId(String userId);
+    List<FeedbackResponse> getFeedbacksByUserId(String userId);
 
-    List<FeedbackResponseDto> getFeedbacksByRecetteId(String recetteId);
+    List<FeedbackResponse> getFeedbacksByRecetteId(String recetteId);
 
-    AverageRatingDto getAverageRatingByRecetteId(String recetteId);
+    AverageRatingResponse getAverageRatingByRecetteId(String recetteId);
 
-    FeedbackResponseDto updateFeedback(Long id, FeedbackUpdateDto feedbackUpdateDto);
+    FeedbackResponse updateFeedback(String id, FeedbackUpdateRequest feedbackUpdateRequest);
 
-    void deleteFeedback(Long id);
+    void deleteFeedback(String id);
 
     void sendFeedbacksToRecommendationService();
 }

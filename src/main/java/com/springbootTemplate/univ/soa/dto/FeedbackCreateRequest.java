@@ -6,7 +6,7 @@ import jakarta.validation.constraints.*;
 
 @Data
 @Schema(description = "Données pour créer un nouveau feedback")
-public class FeedbackCreateDto {
+public class FeedbackCreateRequest {
 
     @Schema(description = "Identifiant de l'utilisateur", example = "user1", required = true)
     @NotBlank(message = "L'ID de l'utilisateur est obligatoire")

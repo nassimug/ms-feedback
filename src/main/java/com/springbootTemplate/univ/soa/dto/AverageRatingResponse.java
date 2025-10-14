@@ -2,14 +2,16 @@ package com.springbootTemplate.univ.soa.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Schema(description = "Statistiques d'une recette")
-public class AverageRatingDto {
+public class AverageRatingResponse {
 
     @Schema(description = "Identifiant de la recette", example = "recette1")
     private String recetteId;
