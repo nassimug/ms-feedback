@@ -1,392 +1,479 @@
-# 🍳 SmartDish - Template Microservices
+# 🤖 ms-feedback - Microservice de Gestion des Feedbacks
 
 ## 📖 Vue d'ensemble
 
-Ce projet constitue le **template parent** pour tous les microservices de l'application **SmartDish**. Il s'agit d'un générateur de recettes intelligent qui recommande des plats à l'utilisateur en fonction des ingrédients saisis et de ses retours. Le système intègre un agent d'apprentissage par renforcement (RL) qui ajuste ses recommandations au fil du temps.
+Le **microservice Feedback** est un composant essentiel de l'application **SmartDish**. Il gère les retours utilisateurs sur les recettes et alimente le moteur de recommandation intelligent basé sur l'apprentissage par renforcement (RL).
 
-## 🏗️ Architecture Microservices
+### Responsabilités principales
 
-Cette application sera composée de plusieurs microservices, chacun ayant sa propre responsabilité :
+- 📝 **Gestion des feedbacks** - Création, lecture, mise à jour et suppression des retours utilisateurs
+- ⭐ **Système de notation** - Notes de 1 à 5 étoiles avec commentaires optionnels
+- 📊 **Statistiques** - Calcul de notes moyennes et agrégation des retours par recette
+- 🤖 **Intégration IA** - Envoi des données au service de recommandation RL
+- 📈 **Analyse des tendances** - Suivi de l'évolution des préférences utilisateurs
 
-- **🔐 ms-authentification** - Gestion de l'authentification et des utilisateurs
-- **🥗 ms-recette** - Gestion des recettes et des ingrédients
-- **🤖 ms-feedback** - Gestion des retours utilisateurs et moteur de recommandation avec IA/RL
+## 🏗️ Architecture Technique
 
-## 🎯 Objectif du Template
+### Stack Technologique
 
-Ce template fournit :
-- ✅ Configuration complète de l'environnement de développement avec **Docker Compose**
-- ✅ Connexions aux bases de données (MySQL + MongoDB)
-- ✅ Stockage MinIO pour les fichiers
-- ✅ Interfaces d'administration web
-- ✅ Configuration sécurisée avec variables d'environnement
-- ✅ Structure de projet Spring Boot standardisée
+| Composant | Technologie | Version |
+|-----------|-------------|---------|
+| **Framework** | Spring Boot | 3.5.6 |
+| **Langage** | Java | 21 |
+| **Base de données** | MongoDB | 7.0 |
+| **Build Tool** | Maven | 3.8+ |
+| **Documentation API** | Swagger/OpenAPI | 2.8.4 |
+| **Tests** | JUnit 5 + Mockito | - |
 
-## 🐳 Docker Compose - Standardisation
+### Choix de MongoDB
 
-**Docker Compose est utilisé pour :**
-- ✅ **Exécution locale standardisée** - Tous les développeurs auront le même environnement
-- ✅ **Configuration unifiée** - Même version des bases de données, même ports, mêmes services
-- ✅ **Isolation des services** - Chaque microservice a ses propres ressources
-- ✅ **Déploiement simplifié** - Un seul `docker-compose up -d` pour tout démarrer
+MongoDB a été choisi pour ce microservice car :
 
-Cela garantit que l'environnement de développement soit **identique chez tous les contributeurs**.
+- ✅ **Flexibilité du schéma** - Les feedbacks peuvent évoluer sans migration complexe
+- ✅ **Performance en lecture** - Agrégations rapides pour les statistiques
+- ✅ **Scalabilité horizontale** - Sharding facile pour gérer la croissance
+- ✅ **Intégration ML** - Format JSON natif pour le pipeline de Machine Learning
+- ✅ **Requêtes complexes** - Framework d'agrégation puissant pour les analyses
 
-## 🔐 Gestion du fichier .env
-
-**⚠️ IMPORTANT - Configuration sécurisée :**
-
-Le fichier `.env` contenant les configurations sensibles (mots de passe, clés) **ne sera PAS inclus dans le repository** pour des raisons de sécurité.
-
-**Processus de récupération du .env :**
-1. Le fichier `.env` sera **fourni individuellement par l'administrateur projet**
-2. Distribution via **message privé** ou **canal sécurisé du groupe projet**
-3. **Placer le fichier `.env` reçu à la racine du projet**
-4. Ne jamais commiter ce fichier (déjà protégé par .gitignore)
-
-```bash
-# Structure attendue :
-votre-projet/
-├── .env                 # ← Fichier reçu de l'administrateur
-├── docker-compose.yml
-└── ...
-```
-
-## 🔄 Maintenir votre microservice à jour
-
-### Importance du rebase du template
-
-Le template parent est régulièrement mis à jour avec :
-- ✅ **Nouvelles fonctionnalités** - Améliorations de l'infrastructure
-- ✅ **Corrections de sécurité** - Mise à jour des dépendances et configurations
-- ✅ **Optimisations** - Performance et bonnes pratiques
-- ✅ **Nouvelles versions** - Spring Boot, bases de données, Docker
-
-**⚠️ Il est ESSENTIEL de maintenir votre microservice synchronisé avec le template.**
-
-### Comment faire le rebase du template
-
-#### 1. Configuration initiale (à faire une seule fois)
-
-```bash
-# Ajouter le template comme remote "upstream"
-git remote add upstream https://github.com/votre-org/RecipeYouLove.git
-
-# Vérifier les remotes configurés
-git remote -v
-# origin    https://github.com/votre-username/ms-authentification.git (fetch)
-# origin    https://github.com/votre-username/ms-authentification.git (push)
-# upstream  https://github.com/votre-org/RecipeYouLove.git (fetch)
-# upstream  https://github.com/votre-org/RecipeYouLove.git (push)
-```
-
-#### 2. Processus de mise à jour (à répéter régulièrement)
-
-```bash
-# 1. S'assurer d'être sur la branche principale
-git checkout main
-
-# 2. Sauvegarder vos modifications locales
-git stash
-
-# 3. Récupérer les dernières modifications du template
-git fetch upstream
-
-# 4. Rebaser votre microservice sur le template mis à jour
-git rebase upstream/main
-
-# 5. Résoudre les conflits s'il y en a (voir section ci-dessous)
-
-# 6. Restaurer vos modifications locales
-git stash pop
-
-# 7. Pousser les modifications
-git push origin main --force-with-lease
-```
-
-#### 3. Résolution des conflits de rebase
-
-En cas de conflits, Git vous indiquera les fichiers concernés :
-
-```bash
-# Voir les fichiers en conflit
-git status
-
-# Éditer manuellement chaque fichier en conflit
-# Garder vos adaptations spécifiques (noms, ports, etc.)
-# Intégrer les nouvelles fonctionnalités du template
-
-# Marquer les conflits comme résolus
-git add fichier-resolu.java
-git add autre-fichier-resolu.properties
-
-# Continuer le rebase
-git rebase --continue
-```
-
-#### 4. Vérification après rebase
-
-```bash
-# Vérifier que tout compile
-mvn clean compile
-
-# Tester l'infrastructure
-docker-compose down
-docker-compose up -d
-
-# Tester l'application
-mvn spring-boot:run
-```
-
-### Conflits courants et résolutions
-
-| Type de conflit | Action recommandée |
-|-----------------|-------------------|
-| **pom.xml** | Garder votre `artifactId` et `name`, intégrer nouvelles dépendances |
-| **application.properties** | Garder votre `spring.application.name`, intégrer nouvelles configs |
-| **Package Java** | Garder votre package, adapter les nouveaux imports si nécessaire |
-| **docker-compose.yml** | Garder vos ports personnalisés, intégrer nouveaux services |
-
-### Planning de mise à jour recommandé
-
-- 🔄 **Hebdomadaire** - Vérifier s'il y a des mises à jour du template
-- 📅 **Avant chaque release** - Obligatoire avant de déployer en production
-- 🚨 **Immédiatement** - En cas d'alerte de sécurité du template
-
-### Commandes utiles pour le suivi
-
-```bash
-# Voir les commits du template non intégrés
-git log --oneline HEAD..upstream/main
-
-# Voir les différences avec le template
-git diff upstream/main
-
-# Voir l'historique des rebases
-git reflog
-```
-
-### En cas de problème lors du rebase
-
-```bash
-# Annuler le rebase en cours
-git rebase --abort
-
-# Revenir à l'état avant le rebase
-git reset --hard HEAD@{1}
-
-# Demander de l'aide avec les logs
-git log --oneline --graph -10
-```
-
-## 🚀 Démarrage rapide
+## 🚀 Démarrage Rapide
 
 ### Prérequis
-- Java 21+
-- Maven 3.6+
-- Docker & Docker Compose
-- Git
+
+- ☕ Java 21+ (JDK Eclipse Adoptium recommandé)
+- 📦 Maven 3.8+
+- 🐳 Docker & Docker Compose
+- 🔧 Git
 
 ### Installation
 
-1. **Cloner le template** (ou forker pour créer un nouveau microservice)
+#### 1. Cloner le repository
+
 ```bash
-git clone https://github.com/votre-org/RecipeYouLove.git
-cd RecipeYouLove
+git clone https://github.com/nassimug/ms-feedback.git
+cd ms-feedback
 ```
 
-2. **Récupérer le fichier .env**
+#### 2. Récupérer le fichier .env
+
+Le fichier `.env` contenant les configurations sensibles sera fourni par l'administrateur projet.
+
 ```bash
-# Attendre de recevoir le fichier .env de l'administrateur
-# Le placer à la racine du projet
+# Placer le fichier .env reçu à la racine du projet
+# Structure attendue :
+ms-feedback/
+├── .env                 # ← Fichier fourni par l'admin
+├── pom.xml
+├── docker-compose.yml
+└── src/
 ```
 
-3. **Démarrer l'infrastructure avec Docker Compose**
+#### 3. Démarrer l'infrastructure Docker
+
 ```bash
+# Démarrer MongoDB et Mongo Express
 docker-compose up -d
-```
 
-4. **Vérifier que tous les services sont en ligne**
-```bash
+# Vérifier que les services sont en ligne
 docker-compose ps
-# Attendre que tous les services soient "Healthy"
 ```
 
-5. **Compiler et démarrer l'application**
+#### 4. Compiler et lancer l'application
+
 ```bash
+# Compiler le projet
 mvn clean install
+
+# Lancer l'application
 mvn spring-boot:run
 ```
 
-## 🔗 Accès aux services
+#### 5. Vérifier le démarrage
 
-Une fois tous les services démarrés :
-
-| Service | URL | Accès |
-|---------|-----|-------|
-| **Application Spring Boot** | http://localhost:8090 | Direct |
-| **PhpMyAdmin (MySQL)** | http://localhost:8080 | Interface d'administration |
-| **Mongo Express (MongoDB)** | http://localhost:8081 | Interface d'administration |
-| **MinIO Console** | http://localhost:9001 | Interface d'administration |
-
-*Les identifiants d'accès sont configurés dans le fichier .env fourni par l'administrateur.*
-
-## 🔧 Adapter le template pour un nouveau microservice
-
-### 1. Configuration du projet
-
-**a) Modifier le `pom.xml`**
-```xml
-<groupId>com.recipeyoulove</groupId>
-<artifactId>ms-nom-de-votre-microservice</artifactId>
-<name>ms-nom-de-votre-microservice</name>
-<description>Description de votre microservice</description>
-```
-
-**b) Renommer le package principal**
 ```bash
-# Déplacer de :
-src/main/java/com/springbootTemplate/univ/soa/
-# Vers :
-src/main/java/com/recipeyoulove/[nom-microservice]/
+# Health check
+curl http://localhost:8091/api/feedbacks/health
+
+# Réponse attendue :
+# ✅ Microservice Feedback is healthy
 ```
 
-**c) Mettre à jour le fichier principal `Application.java`**
-```java
-package com.recipeyoulove.[nom-microservice];
+## 🔗 Accès aux Services
 
-@SpringBootApplication
-public class [NomMicroservice]Application {
-    public static void main(String[] args) {
-        SpringApplication.run([NomMicroservice]Application.class, args);
-    }
+| Service | URL                                   | Credentials | Description |
+|---------|---------------------------------------|-------------|-------------|
+| **Swagger UI** | http://localhost:8090/swagger-ui.html | - | Documentation interactive |
+| **Mongo Express** | http://localhost:8081                 | admin / admin | Interface MongoDB |
+## 📡 Endpoints API
+
+### Feedbacks
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| `POST` | `/api/feedbacks` | Créer un feedback |
+| `GET` | `/api/feedbacks` | Lister tous les feedbacks |
+| `GET` | `/api/feedbacks/{id}` | Obtenir un feedback |
+| `GET` | `/api/feedbacks/user/{userId}` | Feedbacks d'un utilisateur |
+| `GET` | `/api/feedbacks/recette/{recetteId}` | Feedbacks d'une recette |
+| `GET` | `/api/feedbacks/recette/{recetteId}/average` | Note moyenne d'une recette |
+| `PUT` | `/api/feedbacks/{id}` | Mettre à jour un feedback |
+| `DELETE` | `/api/feedbacks/{id}` | Supprimer un feedback |
+| `POST` | `/api/feedbacks/send-to-recommendation` | Envoyer au service RL |
+| `GET` | `/api/feedbacks/health` | Health check |
+
+### Exemples d'utilisation
+
+#### Créer un feedback
+
+```bash
+curl -X POST http://localhost:8090/api/feedbacks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user123",
+    "recetteId": "recette456",
+    "evaluation": 5,
+    "commentaire": "Délicieuse recette !"
+  }'
+```
+
+#### Obtenir la note moyenne d'une recette
+
+```bash
+curl http://localhost:8090/api/feedbacks/recette/recette456/average
+```
+
+Réponse :
+```json
+{
+  "recetteId": "recette456",
+  "averageRating": 4.67,
+  "totalFeedbacks": 15
 }
 ```
 
-### 2. Configuration des bases de données
-
-**a) Modifier le fichier `.env` (reçu de l'administrateur)**
-```env
-# Adapter selon votre microservice
-MYSQL_DATABASE=nom_microservice_db
-MONGO_DATABASE=nom_microservice_mongodb
-
-# Changer les ports si nécessaire pour éviter les conflits
-SERVER_PORT=8091  # ou autre port libre
-MYSQL_PORT=3308   # si vous avez plusieurs microservices
-MONGO_PORT=27018  # si vous avez plusieurs microservices
-```
-
-**b) Mettre à jour `application.properties`**
-```properties
-spring.application.name=nom-de-votre-microservice
-```
-
-### 3. Structure recommandée pour chaque microservice
+## 🗂️ Structure du Projet
 
 ```
-src/main/java/com/recipeyoulove/[microservice]/
-├── Application.java
-├── config/
-│   ├── DatabaseConfig.java
-│   └── SecurityConfig.java
-├── controller/
-│   ├── [Entity]Controller.java
-│   └── HealthController.java
-├── service/
-│   ├── [Entity]Service.java
-│   └── [Entity]ServiceImpl.java
-├── repository/
-│   ├── [Entity]Repository.java
-│   └── [Entity]MongoRepository.java
-├── model/
-│   ├── entity/
-│   │   └── [Entity].java
-│   └── dto/
-│       ├── [Entity]RequestDto.java
-│       └── [Entity]ResponseDto.java
-└── exception/
-    ├── GlobalExceptionHandler.java
-    └── [Custom]Exception.java
+ms-feedback/
+├── src/
+│   ├── main/
+│   │   ├── java/com/springbootTemplate/univ/soa/
+│   │   │   ├── Application.java
+│   │   │   ├── config/
+│   │   │   │   ├── DotenvConfig.java
+│   │   │   │   ├── OpenApiConfig.java
+│   │   │   │   └── WebConfig.java
+│   │   │   ├── controller/
+│   │   │   │   └── FeedbackController.java
+│   │   │   ├── dto/
+│   │   │   │   ├── AverageRatingResponse.java
+│   │   │   │   ├── FeedbackCreateRequest.java
+│   │   │   │   ├── FeedbackResponse.java
+│   │   │   │   └── FeedbackUpdateRequest.java
+│   │   │   ├── exception/
+│   │   │   │   ├── FeedbackNotFoundException.java
+│   │   │   │   └── GlobalExceptionHandler.java
+│   │   │   ├── factory/
+│   │   │   │   └── FeedbackFactory.java
+│   │   │   ├── model/
+│   │   │   │   └── Feedback.java
+│   │   │   ├── repository/
+│   │   │   │   └── FeedbackRepository.java
+│   │   │   └── service/
+│   │   │       ├── FeedbackService.java
+│   │   │       └── FeedbackServiceImpl.java
+│   │   └── resources/
+│   │       ├── application.properties
+│   │       └── META-INF/
+│   │           └── spring.factories
+│   └── test/
+│       └── java/com/springbootTemplate/univ/soa/
+│           ├── FeedbackControllerTest.java
+│           ├── FeedbackServiceTest.java
+│           └── MsFeedbackApplicationTests.java
+├── .env                    # Fichier de configuration (fourni par l'admin)
+├── .gitignore
+├── docker-compose.yml      # Configuration Docker (partagée avec le template)
+├── pom.xml
+└── README.md
 ```
 
-## 🗃️ Configuration des bases de données par microservice
+## 🎨 Design Patterns Utilisés
 
-### Recommandations par microservice :
+### Builder Pattern
 
-| Microservice | Base principale | Base secondaire | Justification |
-|--------------|----------------|-----------------|---------------|
-| **ms-authentification** | MySQL | - | Données relationnelles critiques |
-| **ms-recette** | MySQL | MongoDB | Recettes structurées + métadonnées flexibles |
-| **ms-feedback** | MongoDB | - | Données non-structurées, ML/IA |
+Utilisé pour la construction fluide des objets DTO et entités :
 
-## 🐳 Configuration Docker pour développement
+```java
+Feedback feedback = Feedback.builder()
+    .userId("user123")
+    .recetteId("recette456")
+    .evaluation(5)
+    .commentaire("Excellent!")
+    .build();
+```
 
-### Ports par défaut recommandés :
+### Factory Pattern
 
-| Microservice | Port App | Port MySQL | Port MongoDB |
-|--------------|----------|------------|--------------|
-| **ms-authentification** | 8091 | 3308 | 27018 |
-| **ms-recette** | 8092 | 3309 | 27019 |
-| **ms-feedback** | 8093 | 3310 | 27020 |
+Centralise la création des objets pour éviter la duplication :
 
-### Commandes Docker pour chaque microservice
+```java
+public class FeedbackFactory {
+    public Feedback createFeedback(FeedbackCreateRequest request) { ... }
+    public FeedbackResponse createResponse(Feedback feedback) { ... }
+    public List<FeedbackResponse> createResponseList(List<Feedback> feedbacks) { ... }
+}
+```
+
+### Repository Pattern
+
+Abstraction de la couche d'accès aux données avec Spring Data MongoDB :
+
+```java
+public interface FeedbackRepository extends MongoRepository<Feedback, String> {
+    List<Feedback> findByUserIdOrderByDateFeedbackDesc(String userId);
+    List<Feedback> findByRecetteIdOrderByDateFeedbackDesc(String recetteId);
+}
+```
+
+## 🧪 Tests et Couverture
+
+### Lancer les tests
 
 ```bash
-# Arrêter le template
-docker-compose down
+# Tous les tests
+mvn test
 
-# Modifier le .env avec les nouveaux ports
-# Redémarrer avec la nouvelle configuration
-docker-compose up -d
+# Tests avec rapport de couverture
+mvn test jacoco:report
+
+# Ouvrir le rapport de couverture
+start target\site\jacoco\index.html
 ```
 
-## 🚀 Pipeline CI/CD (En développement)
+### Couverture actuelle
 
-**🔄 Prochainement disponible :**
-- Pipeline CI/CD complète
-- Intégration Kubernetes pour le déploiement
-- Gestion des secrets avec Vault
-- Déploiement automatisé en environnements de test/production
+| Package | Couverture             |
+|---------|------------------------|
+| **Service** | ~73%                   |
+| **Controller** | ~90%                   |
+| **Factory** | ~100%                  |
+| **Repository** | ~100% |
+| **Global** | ~87%                   |
 
-*Cette fonctionnalité est actuellement en cours de développement par l'équipe infrastructure.*
+#### Tests Unitaires
+- ✅ **FeedbackServiceTest** - 12 tests unitaires du service
+- ✅ **FeedbackControllerTest** - 12 tests unitaires du contrôleur (MockMvc)
+- ✅ **FeedbackFactoryTest** - 15 tests de la factory
+- ✅ **GlobalExceptionHandlerTest** - 13 tests du gestionnaire d'exceptions
+- ✅ **FeedbackNotFoundExceptionTest** - 8 tests de l'exception personnalisée
 
-## 🔒 Sécurité et bonnes pratiques
 
-### Variables d'environnement
-- ✅ Toujours utiliser le fichier `.env` fourni par l'administrateur
-- ✅ Ne jamais commiter le fichier `.env` (déjà dans .gitignore)
-- ✅ Signaler tout problème de configuration à l'administrateur
+### Profils Spring Boot
 
-### Base de données
-- ✅ Créer des utilisateurs spécifiques pour chaque microservice
-- ✅ Utiliser des bases de données séparées
-- ✅ Implémenter des migrations avec Flyway/Liquibase
-- ✅ Configurer les backup automatiques
+Le microservice supporte plusieurs profils :
 
-## 📚 Documentation détaillée
+```bash
+# Développement (par défaut)
+mvn spring-boot:run
 
-- [Guide d'accès aux services](SERVICES_ACCESS.md)
-- [Guide de rebase avec le template](GUIDE_REBASE_TEMPLATE.md)
-- [Configuration Docker](docker-compose.yml)
+# Production
+mvn spring-boot:run -Dspring-boot.run.profiles=prod
+
+# Tests
+mvn test -Dspring.profiles.active=test
+```
+
+## 🐳 Docker
+
+### Démarrer uniquement MongoDB
+
+```bash
+docker-compose up -d mongodb mongo-express
+```
+
+### Logs des conteneurs
+
+```bash
+# MongoDB
+docker-compose logs -f mongodb
+
+# Mongo Express
+docker-compose logs -f mongo-express
+```
+
+### Arrêter les services
+
+```bash
+# Arrêter sans supprimer les données
+docker-compose down
+
+# Arrêter et supprimer les volumes (⚠️ perte de données)
+docker-compose down -v
+```
+
+## 📊 Modèle de Données
+
+### Entité Feedback
+
+```json
+{
+  "_id": "507f1f77bcf86cd799439011",
+  "userId": "user123",
+  "recetteId": "recette456",
+  "evaluation": 5,
+  "commentaire": "Excellente recette !",
+  "dateFeedback": "2025-10-14T14:30:00",
+  "dateModification": "2025-10-14T14:30:00",
+  "_class": "com.springbootTemplate.univ.soa.model.Feedback"
+}
+```
+
+### Validation
+
+- `userId` : Obligatoire, non vide
+- `recetteId` : Obligatoire, non vide
+- `evaluation` : Obligatoire, entre 1 et 5
+- `commentaire` : Optionnel, max 1000 caractères
+
+## 🔄 Intégration avec le Template Parent
+
+### Synchronisation avec le template
+
+```bash
+# Configurer le template comme remote upstream (une seule fois)
+git remote add upstream https://github.com/EmilieHascoet/SmartDish.git
+
+# Récupérer les mises à jour
+git fetch upstream
+
+# Rebaser sur le template
+git rebase upstream/main
+
+# Pousser les changements
+git push origin main --force-with-lease
+```
+
+### Fréquence de mise à jour recommandée
+
+- 🔄 **Hebdomadaire** - Vérification des mises à jour
+- 📅 **Avant chaque release** - Obligatoire
+- 🚨 **Immédiatement** - En cas d'alerte de sécurité
+
+## 🔐 Sécurité
+
+### Bonnes pratiques appliquées
+
+- ✅ Variables sensibles dans `.env` (hors Git)
+- ✅ Validation des entrées avec `@Valid`
+- ✅ Gestion globale des exceptions
+- ✅ Pas de données sensibles dans les logs
+- ✅ MongoDB avec authentification
+
+
+## 📈 Monitoring et Observabilité
+
+### Actuator Endpoints
+
+- `/actuator/health` - État de santé
+- `/actuator/info` - Informations sur l'application
+- `/actuator/metrics` - Métriques de performance
+
+### Logs
+
+Les logs sont configurés avec différents niveaux :
+
+```properties
+logging.level.root=INFO
+logging.level.com.springbootTemplate.univ.soa=DEBUG
+logging.level.org.springframework.data.mongodb.core.MongoTemplate=DEBUG
+```
+
+## 🚀 Déploiement
+
+### Build pour la production
+
+```bash
+# Créer le JAR
+mvn clean package -DskipTests
+
+# Le JAR se trouve dans :
+target/ms-feedback-1.0.0.jar
+
+# Lancer en production
+java -jar -Dspring.profiles.active=prod target/ms-feedback-1.0.0.jar
+```
+
+### Docker Build (à venir)
+
+```bash
+# Build de l'image Docker
+docker build -t ms-feedback:1.0.0 .
+
+# Lancer le conteneur
+docker run -p 8091:8091 --env-file .env ms-feedback:1.0.0
+```
 
 ## 🤝 Contribution
 
-1. Forker ce template pour créer un nouveau microservice
-2. Recevoir le fichier `.env` de l'administrateur
-3. Suivre les conventions de nommage
-4. Mettre à jour la documentation
-5. Tester localement avec Docker Compose
-6. Créer une Pull Request avec une description détaillée
+### Workflow de développement
 
-## 📞 Support
+1. Créer une branche depuis `main`
+```bash
+git checkout -b feat/nouvelle-fonctionnalite
+```
 
-Pour toute question sur ce template ou l'architecture microservices :
-- Créer une issue sur ce repository
-- Consulter la documentation dans `/docs`
-- Contacter l'administrateur pour les questions de configuration
-- Signaler les problèmes d'environnement Docker
+2. Développer et tester localement
+```bash
+mvn test
+mvn spring-boot:run
+```
+
+3. Vérifier la couverture de tests
+```bash
+mvn clean test jacoco:report
+```
+
+4. Commiter avec des messages clairs
+```bash
+git commit -m "feat: ajout de la fonctionnalité X"
+```
+
+5. Pousser et créer une Pull Request
+```bash
+git push origin feat/nouvelle-fonctionnalite
+```
+
+### Conventions de commit
+
+- `feat:` - Nouvelle fonctionnalité
+- `fix:` - Correction de bug
+- `docs:` - Documentation
+- `test:` - Ajout/modification de tests
+- `refactor:` - Refactoring du code
+- `chore:` - Tâches diverses
+
+## Ressources
+
+- 📚 [Documentation Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/html/)
+- 📚 [Documentation MongoDB](https://docs.mongodb.com/)
+- 📚 [Spring Data MongoDB](https://docs.spring.io/spring-data/mongodb/docs/current/reference/html/)
+- 📚 [Swagger/OpenAPI](https://swagger.io/docs/)
+
+## 📝 Changelog
+
+### Version 1.0.0 (2025-10-14)
+
+- ✅ Implémentation des patterns Builder et Factory
+- ✅ Ajout de la couverture de tests (87%)
+- ✅ Documentation API avec Swagger
+- ✅ Configuration Docker Compose
+- ✅ Intégration avec le template parent
+
+
+## 📄 Licence
+
+Ce projet fait partie de l'application SmartDish et est soumis aux termes de la licence du projet parent.
 
 ---
 
-🎯 **Ce template est conçu pour accélérer le développement des microservices RecipeYouLove tout en garantissant une cohérence architecturale et une sécurité optimale.**
+**🎯 ms-feedback v1.0.0** - Propulsé par Spring Boot 3.5.6 et MongoDB 7.0
