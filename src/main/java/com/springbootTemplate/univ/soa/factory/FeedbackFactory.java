@@ -1,7 +1,7 @@
 package com.springbootTemplate.univ.soa.factory;
 
-import com.springbootTemplate.univ.soa.dto.AverageRatingResponse;
 import com.springbootTemplate.univ.soa.dto.FeedbackCreateRequest;
+import com.springbootTemplate.univ.soa.dto.AverageRatingResponse;
 import com.springbootTemplate.univ.soa.dto.FeedbackResponse;
 import com.springbootTemplate.univ.soa.model.Feedback;
 import org.springframework.stereotype.Component;
@@ -18,49 +18,48 @@ import java.util.stream.Collectors;
 public class FeedbackFactory {
 
     /**
-     * Crée une nouvelle entité Feedback à partir d'un DTO de création
+     * Crée une nouvelle entité Feedback à partir d'une requête de création
      * Utilise le pattern Builder de Lombok
      */
-    public Feedback createFeedback(FeedbackCreateRequest dto) {
+    public Feedback createFeedback(FeedbackCreateRequest request) {
         return Feedback.builder()
-                .userId(dto.getUserId())
-                .recetteId(dto.getRecetteId())
-                .evaluation(dto.getEvaluation())
-                .commentaire(dto.getCommentaire())
+                .userId(request.getUserId())
+                .recetteId(request.getRecetteId())
+                .evaluation(request.getEvaluation())
+                .commentaire(request.getCommentaire())
                 .dateFeedback(LocalDateTime.now())
                 .dateModification(LocalDateTime.now())
                 .build();
     }
 
     /**
-     * Crée un FeedbackResponseDto à partir d'une entité Feedback
-     * Utilise le pattern Builder si le DTO l'a (optionnel)
+     * Crée une réponse FeedbackResponse à partir d'une entité Feedback
      */
-    public FeedbackResponse createResponseDto(Feedback feedback) {
-        FeedbackResponse dto = new FeedbackResponse();
-        dto.setId(feedback.getId());
-        dto.setUserId(feedback.getUserId());
-        dto.setRecetteId(feedback.getRecetteId());
-        dto.setEvaluation(feedback.getEvaluation());
-        dto.setCommentaire(feedback.getCommentaire());
-        dto.setDateFeedback(feedback.getDateFeedback());
-        dto.setDateModification(feedback.getDateModification());
-        return dto;
+    public FeedbackResponse createResponse(Feedback feedback) {
+        return FeedbackResponse.builder()
+                .id(feedback.getId())
+                .userId(feedback.getUserId())
+                .recetteId(feedback.getRecetteId())
+                .evaluation(feedback.getEvaluation())
+                .commentaire(feedback.getCommentaire())
+                .dateFeedback(feedback.getDateFeedback())
+                .dateModification(feedback.getDateModification())
+                .build();
     }
 
     /**
-     * Crée une liste de FeedbackResponseDto à partir d'une liste de Feedback
+     * Crée une liste de FeedbackResponse à partir d'une liste de Feedback
      */
-    public List<FeedbackResponse> createResponseDtoList(List<Feedback> feedbacks) {
+    public List<FeedbackResponse> createResponseList(List<Feedback> feedbacks) {
         return feedbacks.stream()
-                .map(this::createResponseDto)
+                .map(this::createResponse)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Crée un AverageRatingDto avec les statistiques d'une recette
+     * Crée une réponse AverageRatingResponse avec les statistiques d'une recette
      */
-    public AverageRatingResponse createAverageRatingDto(String recetteId, Double averageRating, Long totalFeedbacks) {
+    public AverageRatingResponse createAverageRatingResponse(String recetteId, Double averageRating, Long totalFeedbacks) {
         return AverageRatingResponse.builder()
                 .recetteId(recetteId)
                 .averageRating(averageRating != null ? roundToTwoDecimals(averageRating) : 0.0)

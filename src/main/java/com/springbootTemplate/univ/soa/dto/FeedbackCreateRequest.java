@@ -1,11 +1,17 @@
 package com.springbootTemplate.univ.soa.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-@Schema(description = "Données pour créer un nouveau feedback")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Schema(description = "Requête pour créer un nouveau feedback")
 public class FeedbackCreateRequest {
 
     @Schema(description = "Identifiant de l'utilisateur", example = "user1", required = true)

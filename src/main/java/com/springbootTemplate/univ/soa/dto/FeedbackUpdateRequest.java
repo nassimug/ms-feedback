@@ -1,10 +1,16 @@
 package com.springbootTemplate.univ.soa.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Schema(description = "Données pour mettre à jour un feedback existant")
 public class FeedbackUpdateRequest {
 

@@ -1,6 +1,9 @@
 package com.springbootTemplate.univ.soa.service;
 
-import com.springbootTemplate.univ.soa.dto.*;
+import com.springbootTemplate.univ.soa.dto.FeedbackCreateRequest;
+import com.springbootTemplate.univ.soa.dto.FeedbackUpdateRequest;
+import com.springbootTemplate.univ.soa.dto.AverageRatingResponse;
+import com.springbootTemplate.univ.soa.dto.FeedbackResponse;
 import com.springbootTemplate.univ.soa.exception.FeedbackNotFoundException;
 import com.springbootTemplate.univ.soa.factory.FeedbackFactory;
 import com.springbootTemplate.univ.soa.model.Feedback;
@@ -29,35 +32,32 @@ public class FeedbackServiceImpl implements FeedbackService {
     private String recommendationServiceUrl;
 
     @Override
-    public FeedbackResponse createFeedback(FeedbackCreateRequest feedbackCreateRequest) {
-        log.info("Création d'un nouveau feedback pour la recette: {}", feedbackCreateRequest.getRecetteId());
+    public FeedbackResponse createFeedback(FeedbackCreateRequest request) {
+        log.info("Création d'un nouveau feedback pour la recette: {}", request.getRecetteId());
 
-        // Utilisation de la Factory pour créer l'entité
-        Feedback feedback = feedbackFactory.createFeedback(feedbackCreateRequest);
+        Feedback feedback = feedbackFactory.createFeedback(request);
         Feedback savedFeedback = feedbackRepository.save(feedback);
 
         log.info("✅ Feedback créé avec succès - ID: {}", savedFeedback.getId());
-
-        // Utilisation de la Factory pour créer le DTO de réponse
-        return feedbackFactory.createResponseDto(savedFeedback);
+        return feedbackFactory.createResponse(savedFeedback);
     }
 
     @Override
     public List<FeedbackResponse> getAllFeedbacks() {
         log.info("Récupération de tous les feedbacks");
-        return feedbackFactory.createResponseDtoList(feedbackRepository.findAll());
+        return feedbackFactory.createResponseList(feedbackRepository.findAll());
     }
 
     @Override
     public FeedbackResponse getFeedbackById(String id) {
         log.info("Récupération du feedback avec l'ID: {}", id);
-        return feedbackFactory.createResponseDto(findFeedbackOrThrow(id));
+        return feedbackFactory.createResponse(findFeedbackOrThrow(id));
     }
 
     @Override
     public List<FeedbackResponse> getFeedbacksByUserId(String userId) {
         log.info("Récupération des feedbacks de l'utilisateur: {}", userId);
-        return feedbackFactory.createResponseDtoList(
+        return feedbackFactory.createResponseList(
                 feedbackRepository.findByUserIdOrderByDateFeedbackDesc(userId)
         );
     }
@@ -65,7 +65,7 @@ public class FeedbackServiceImpl implements FeedbackService {
     @Override
     public List<FeedbackResponse> getFeedbacksByRecetteId(String recetteId) {
         log.info("Récupération des feedbacks de la recette: {}", recetteId);
-        return feedbackFactory.createResponseDtoList(
+        return feedbackFactory.createResponseList(
                 feedbackRepository.findByRecetteIdOrderByDateFeedbackDesc(recetteId)
         );
     }
@@ -77,27 +77,24 @@ public class FeedbackServiceImpl implements FeedbackService {
         Double averageRating = feedbackRepository.findAverageRatingByRecetteId(recetteId);
         Long totalFeedbacks = feedbackRepository.countByRecetteId(recetteId);
 
-        // Utilisation de la Factory pour créer le DTO de statistiques
-        return feedbackFactory.createAverageRatingDto(recetteId, averageRating, totalFeedbacks);
+        return feedbackFactory.createAverageRatingResponse(recetteId, averageRating, totalFeedbacks);
     }
 
     @Override
-    public FeedbackResponse updateFeedback(String id, FeedbackUpdateRequest feedbackUpdateRequest) {
+    public FeedbackResponse updateFeedback(String id, FeedbackUpdateRequest request) {
         log.info("Mise à jour du feedback avec l'ID: {}", id);
 
         Feedback original = findFeedbackOrThrow(id);
-
-        // Utilisation de la Factory pour créer un feedback mis à jour
         Feedback updatedFeedback = feedbackFactory.createUpdatedFeedback(
                 original,
-                feedbackUpdateRequest.getEvaluation(),
-                feedbackUpdateRequest.getCommentaire()
+                request.getEvaluation(),
+                request.getCommentaire()
         );
 
         Feedback saved = feedbackRepository.save(updatedFeedback);
         log.info("✅ Feedback mis à jour avec succès - ID: {}", saved.getId());
 
-        return feedbackFactory.createResponseDto(saved);
+        return feedbackFactory.createResponse(saved);
     }
 
     @Override
@@ -125,8 +122,8 @@ public class FeedbackServiceImpl implements FeedbackService {
             }
 
             sendFeedbacksToExternalService(recentFeedbacks);
-
             log.info("✅ {} feedbacks envoyés au service de recommandation avec succès", recentFeedbacks.size());
+
         } catch (ResourceAccessException e) {
             handleConnectionError(e);
         } catch (HttpClientErrorException e) {
