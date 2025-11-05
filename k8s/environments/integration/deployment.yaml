@@ -4,19 +4,19 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: recipeyoulove-sa
-  namespace: soa-production
+  namespace: soa-integration
 ---
 # Deployment de l'application
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: recipeyoulove-api
-  namespace: soa-production
+  namespace: soa-integration
   labels:
     app: recipeyoulove-api
-    environment: production
+    environment: integration
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: recipeyoulove-api
@@ -24,30 +24,30 @@ spec:
     metadata:
       labels:
         app: recipeyoulove-api
-        environment: production
+        environment: integration
       annotations:
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "production-role"
-        vault.hashicorp.com/agent-inject-secret-mysql: "secret/data/production/mysql"
+        vault.hashicorp.com/role: "integration-role"
+        vault.hashicorp.com/agent-inject-secret-mysql: "secret/data/integration/mysql"
         vault.hashicorp.com/agent-inject-template-mysql: |
-          {{- with secret "secret/data/production/mysql" -}}
+          {{- with secret "secret/data/integration/mysql" -}}
           export MYSQL_HOST="{{ .Data.data.host }}"
           export MYSQL_PORT="{{ .Data.data.port }}"
           export MYSQL_DATABASE="{{ .Data.data.database }}"
           export MYSQL_USERNAME="{{ .Data.data.username }}"
           export MYSQL_ROOT_PASSWORD="{{ .Data.data.password }}"
           {{- end }}
-        vault.hashicorp.com/agent-inject-secret-mongodb: "secret/data/production/mongodb"
+        vault.hashicorp.com/agent-inject-secret-mongodb: "secret/data/integration/mongodb"
         vault.hashicorp.com/agent-inject-template-mongodb: |
-          {{- with secret "secret/data/production/mongodb" -}}
+          {{- with secret "secret/data/integration/mongodb" -}}
           export MONGO_ROOT_USERNAME="{{ .Data.data.root_username }}"
           export MONGO_ROOT_PASSWORD="{{ .Data.data.root_password }}"
           export MONGO_DATABASE="{{ .Data.data.database }}"
           export MONGO_PORT="{{ .Data.data.port }}"
           {{- end }}
-        vault.hashicorp.com/agent-inject-secret-application: "secret/data/production/application"
+        vault.hashicorp.com/agent-inject-secret-application: "secret/data/integration/application"
         vault.hashicorp.com/agent-inject-template-application: |
-          {{- with secret "secret/data/production/application" -}}
+          {{- with secret "secret/data/integration/application" -}}
           export SERVER_PORT="{{ .Data.data.server_port }}"
           export JPA_DDL_AUTO="{{ .Data.data.jpa_ddl_auto }}"
           export JPA_SHOW_SQL="{{ .Data.data.jpa_show_sql }}"
@@ -93,18 +93,18 @@ spec:
           failureThreshold: 3
         resources:
           requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
             memory: "1Gi"
             cpu: "500m"
-          limits:
-            memory: "2Gi"
-            cpu: "1000m"
 ---
 # Service pour exposer l'application
 apiVersion: v1
 kind: Service
 metadata:
   name: recipeyoulove-api-service
-  namespace: soa-production
+  namespace: soa-integration
   labels:
     app: recipeyoulove-api
 spec:
@@ -122,14 +122,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: recipeyoulove-api-ingress
-  namespace: soa-production
+  namespace: soa-integration
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx
   rules:
-  - host: soa-api.recipeyoulove.app
+  - host: soa-api-integration.recipeyoulove.app
     http:
       paths:
       - path: /
