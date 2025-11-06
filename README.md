@@ -106,7 +106,7 @@ ms-feedback/
 │   ├── dto/
 │   ├── exception/
 │   ├── model/
-│   │   └── Feedback.java               • IDs en Long (MySQL)
+│   │   └── Feedback.java               
 │   └── service/
 │       └── FeedbackServiceImpl.java    • Utilise PersistanceClient
 ├── .env                                 # Fourni par l'admin (non versionné)
