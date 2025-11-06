@@ -1,4 +1,4 @@
-# 🤖 ms-feedback - Microservice de Gestion des Feedbacks
+# 🤖 ms-feedback - Microservice Feedbacks
 
 ## 📖 Vue d'ensemble
 
@@ -138,6 +138,6 @@ java -jar target/ms-feedback-1.0.0.jar
 
 - [Documentation Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/html/)
 - [Swagger/OpenAPI](https://swagger.io/docs/)
-- [Documentation ms-persistance](../ms-persistance/README.md)
+- [Documentation ms-persistance](https://github.com/Sabine22-alt/ms-persistance/blob/main/README.md)
 
 ---
