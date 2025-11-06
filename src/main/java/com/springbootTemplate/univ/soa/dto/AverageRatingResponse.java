@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Statistiques d'une recette")
 public class AverageRatingResponse {
 
-    @Schema(description = "Identifiant de la recette", example = "recette1")
-    private String recetteId;
+    @Schema(description = "Identifiant de la recette", example = "5")
+    private Long recetteId;
 
     @Schema(description = "Note moyenne (de 1 à 5)", example = "4.67")
     private Double averageRating;

@@ -1,5 +1,6 @@
-package com.springbootTemplate.univ.soa.model;
+package com.springbootTemplate.univ.soa.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,21 +12,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Feedback {
+public class FeedbackDTO {
 
     private Long id;
-
     private Long utilisateurId;
-
     private Long recetteId;
-
     private Integer evaluation;
-
     private String commentaire;
-
-    @Builder.Default
-    private LocalDateTime dateFeedback = LocalDateTime.now();
-
-    @Builder.Default
-    private LocalDateTime dateModification = LocalDateTime.now();
+    private LocalDateTime dateFeedback;
+    private LocalDateTime dateModification;
 }

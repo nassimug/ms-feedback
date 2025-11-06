@@ -14,13 +14,13 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Requête pour créer un nouveau feedback")
 public class FeedbackCreateRequest {
 
-    @Schema(description = "Identifiant de l'utilisateur", example = "user1", required = true)
-    @NotBlank(message = "L'ID de l'utilisateur est obligatoire")
-    private String userId;
+    @Schema(description = "Identifiant de l'utilisateur", example = "1", required = true)
+    @NotNull(message = "L'ID de l'utilisateur est obligatoire")
+    private Long utilisateurId;
 
-    @Schema(description = "Identifiant de la recette", example = "recette1", required = true)
-    @NotBlank(message = "L'ID de la recette est obligatoire")
-    private String recetteId;
+    @Schema(description = "Identifiant de la recette", example = "5", required = true)
+    @NotNull(message = "L'ID de la recette est obligatoire")
+    private Long recetteId;
 
     @Schema(description = "Note de 1 à 5 étoiles", example = "5", minimum = "1", maximum = "5", required = true)
     @NotNull(message = "L'évaluation est obligatoire")
@@ -29,5 +29,6 @@ public class FeedbackCreateRequest {
     private Integer evaluation;
 
     @Schema(description = "Commentaire optionnel sur la recette", example = "Délicieuse recette, facile à réaliser !")
+    @Size(max = 1000, message = "Le commentaire ne peut pas dépasser 1000 caractères")
     private String commentaire;
 }
