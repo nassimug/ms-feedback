@@ -1,31 +1,24 @@
 package com.springbootTemplate.univ.soa.service;
 
-import com.springbootTemplate.univ.soa.dto.FeedbackCreateRequest;
-import com.springbootTemplate.univ.soa.dto.FeedbackUpdateRequest;
-import com.springbootTemplate.univ.soa.dto.AverageRatingResponse;
-import com.springbootTemplate.univ.soa.dto.FeedbackResponse;
+import com.springbootTemplate.univ.soa.client.PersistanceClient;
+import com.springbootTemplate.univ.soa.dto.*;
 import com.springbootTemplate.univ.soa.exception.FeedbackNotFoundException;
-import com.springbootTemplate.univ.soa.factory.FeedbackFactory;
-import com.springbootTemplate.univ.soa.model.Feedback;
-import com.springbootTemplate.univ.soa.repository.FeedbackRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class FeedbackServiceImpl implements FeedbackService {
 
-    private final FeedbackRepository feedbackRepository;
-    private final FeedbackFactory feedbackFactory;
+    private final PersistanceClient persistanceClient;
     private final RestTemplate restTemplate;
 
     @Value("${recommendation.service.url}")
@@ -35,78 +28,165 @@ public class FeedbackServiceImpl implements FeedbackService {
     public FeedbackResponse createFeedback(FeedbackCreateRequest request) {
         log.info("Création d'un nouveau feedback pour la recette: {}", request.getRecetteId());
 
-        Feedback feedback = feedbackFactory.createFeedback(request);
-        Feedback savedFeedback = feedbackRepository.save(feedback);
+        // Validation : vérifier que l'utilisateur existe
+        if (!persistanceClient.utilisateurExists(request.getUtilisateurId())) {
+            throw new IllegalArgumentException("Utilisateur non trouvé avec l'ID: " + request.getUtilisateurId());
+        }
 
-        log.info("✅ Feedback créé avec succès - ID: {}", savedFeedback.getId());
-        return feedbackFactory.createResponse(savedFeedback);
+        // Validation : vérifier que la recette existe
+        if (!persistanceClient.recetteExists(request.getRecetteId())) {
+            throw new IllegalArgumentException("Recette non trouvée avec l'ID: " + request.getRecetteId());
+        }
+
+        // Créer le DTO pour le microservice Persistance
+        FeedbackDTO feedbackDTO = FeedbackDTO.builder()
+                .utilisateurId(request.getUtilisateurId())
+                .recetteId(request.getRecetteId())
+                .evaluation(request.getEvaluation())
+                .commentaire(request.getCommentaire())
+                .dateFeedback(LocalDateTime.now())
+                .dateModification(LocalDateTime.now())
+                .build();
+
+        // Appel au microservice Persistance
+        FeedbackDTO savedFeedback = persistanceClient.createFeedback(feedbackDTO);
+
+        log.info("Feedback créé avec succès - ID: {}", savedFeedback.getId());
+        return mapToResponse(savedFeedback);
     }
 
     @Override
     public List<FeedbackResponse> getAllFeedbacks() {
         log.info("Récupération de tous les feedbacks");
-        return feedbackFactory.createResponseList(feedbackRepository.findAll());
+        List<FeedbackDTO> feedbacks = persistanceClient.getAllFeedbacks();
+        return feedbacks.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
     public FeedbackResponse getFeedbackById(String id) {
         log.info("Récupération du feedback avec l'ID: {}", id);
-        return feedbackFactory.createResponse(findFeedbackOrThrow(id));
+
+        try {
+            Long feedbackId = Long.parseLong(id);
+            FeedbackDTO feedback = persistanceClient.getFeedbackById(feedbackId);
+            return mapToResponse(feedback);
+        } catch (NumberFormatException e) {
+            throw new FeedbackNotFoundException("Format d'ID invalide: " + id);
+        } catch (RuntimeException e) {
+            throw new FeedbackNotFoundException("Feedback non trouvé avec l'ID: " + id);
+        }
     }
 
     @Override
     public List<FeedbackResponse> getFeedbacksByUserId(String userId) {
         log.info("Récupération des feedbacks de l'utilisateur: {}", userId);
-        return feedbackFactory.createResponseList(
-                feedbackRepository.findByUserIdOrderByDateFeedbackDesc(userId)
-        );
+
+        try {
+            Long utilisateurId = Long.parseLong(userId);
+            List<FeedbackDTO> feedbacks = persistanceClient.getFeedbacksByUtilisateurId(utilisateurId);
+            return feedbacks.stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Format d'ID utilisateur invalide: " + userId);
+        }
     }
 
     @Override
     public List<FeedbackResponse> getFeedbacksByRecetteId(String recetteId) {
         log.info("Récupération des feedbacks de la recette: {}", recetteId);
-        return feedbackFactory.createResponseList(
-                feedbackRepository.findByRecetteIdOrderByDateFeedbackDesc(recetteId)
-        );
+
+        try {
+            Long recetteIdLong = Long.parseLong(recetteId);
+            List<FeedbackDTO> feedbacks = persistanceClient.getFeedbacksByRecetteId(recetteIdLong);
+            return feedbacks.stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Format d'ID recette invalide: " + recetteId);
+        }
     }
 
     @Override
     public AverageRatingResponse getAverageRatingByRecetteId(String recetteId) {
         log.info("Calcul de la note moyenne pour la recette: {}", recetteId);
 
-        Double averageRating = feedbackRepository.findAverageRatingByRecetteId(recetteId);
-        Long totalFeedbacks = feedbackRepository.countByRecetteId(recetteId);
+        try {
+            Long recetteIdLong = Long.parseLong(recetteId);
+            List<FeedbackDTO> feedbacks = persistanceClient.getFeedbacksByRecetteId(recetteIdLong);
 
-        return feedbackFactory.createAverageRatingResponse(recetteId, averageRating, totalFeedbacks);
+            if (feedbacks.isEmpty()) {
+                return AverageRatingResponse.builder()
+                        .recetteId(recetteIdLong)
+                        .averageRating(0.0)
+                        .totalFeedbacks(0L)
+                        .build();
+            }
+
+            double average = feedbacks.stream()
+                    .mapToInt(FeedbackDTO::getEvaluation)
+                    .average()
+                    .orElse(0.0);
+
+            return AverageRatingResponse.builder()
+                    .recetteId(recetteIdLong)
+                    .averageRating(Math.round(average * 100.0) / 100.0)
+                    .totalFeedbacks((long) feedbacks.size())
+                    .build();
+
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Format d'ID recette invalide: " + recetteId);
+        }
     }
 
     @Override
     public FeedbackResponse updateFeedback(String id, FeedbackUpdateRequest request) {
         log.info("Mise à jour du feedback avec l'ID: {}", id);
 
-        Feedback original = findFeedbackOrThrow(id);
-        Feedback updatedFeedback = feedbackFactory.createUpdatedFeedback(
-                original,
-                request.getEvaluation(),
-                request.getCommentaire()
-        );
+        try {
+            Long feedbackId = Long.parseLong(id);
 
-        Feedback saved = feedbackRepository.save(updatedFeedback);
-        log.info("✅ Feedback mis à jour avec succès - ID: {}", saved.getId());
+            // Récupérer le feedback existant
+            FeedbackDTO existingFeedback = persistanceClient.getFeedbackById(feedbackId);
 
-        return feedbackFactory.createResponse(saved);
+            // Créer le DTO mis à jour
+            FeedbackDTO updatedFeedback = FeedbackDTO.builder()
+                    .id(existingFeedback.getId())
+                    .utilisateurId(existingFeedback.getUtilisateurId())
+                    .recetteId(existingFeedback.getRecetteId())
+                    .evaluation(request.getEvaluation() != null ? request.getEvaluation() : existingFeedback.getEvaluation())
+                    .commentaire(request.getCommentaire() != null ? request.getCommentaire() : existingFeedback.getCommentaire())
+                    .dateFeedback(existingFeedback.getDateFeedback())
+                    .dateModification(LocalDateTime.now())
+                    .build();
+
+            FeedbackDTO saved = persistanceClient.updateFeedback(feedbackId, updatedFeedback);
+            log.info("Feedback mis à jour avec succès - ID: {}", saved.getId());
+            return mapToResponse(saved);
+
+        } catch (NumberFormatException e) {
+            throw new FeedbackNotFoundException("Format d'ID invalide: " + id);
+        } catch (RuntimeException e) {
+            throw new FeedbackNotFoundException("Feedback non trouvé avec l'ID: " + id);
+        }
     }
 
     @Override
     public void deleteFeedback(String id) {
         log.info("Suppression du feedback avec l'ID: {}", id);
 
-        if (!feedbackRepository.existsById(id)) {
+        try {
+            Long feedbackId = Long.parseLong(id);
+            persistanceClient.deleteFeedback(feedbackId);
+            log.info("Feedback supprimé avec succès - ID: {}", feedbackId);
+
+        } catch (NumberFormatException e) {
+            throw new FeedbackNotFoundException("Format d'ID invalide: " + id);
+        } catch (RuntimeException e) {
             throw new FeedbackNotFoundException("Feedback non trouvé avec l'ID: " + id);
         }
-
-        feedbackRepository.deleteById(id);
-        log.info("✅ Feedback supprimé avec succès - ID: {}", id);
     }
 
     @Override
@@ -114,66 +194,48 @@ public class FeedbackServiceImpl implements FeedbackService {
         log.info("Envoi des feedbacks au service de recommandation");
 
         try {
-            List<Feedback> recentFeedbacks = feedbackRepository.findTop100ByOrderByDateFeedbackDesc();
+            // Récupérer tous les feedbacks (ou une partie selon vos besoins)
+            List<FeedbackDTO> allFeedbacks = persistanceClient.getAllFeedbacks();
 
-            if (recentFeedbacks.isEmpty()) {
-                log.info("ℹ️ Aucun feedback à envoyer");
+            if (allFeedbacks.isEmpty()) {
+                log.info("Aucun feedback à envoyer");
                 return;
             }
 
-            sendFeedbacksToExternalService(recentFeedbacks);
-            log.info("✅ {} feedbacks envoyés au service de recommandation avec succès", recentFeedbacks.size());
+            // Limiter à 100 feedbacks les plus récents
+            List<FeedbackDTO> recentFeedbacks = allFeedbacks.stream()
+                    .sorted((f1, f2) -> f2.getDateFeedback().compareTo(f1.getDateFeedback()))
+                    .limit(100)
+                    .collect(Collectors.toList());
 
-        } catch (ResourceAccessException e) {
-            handleConnectionError(e);
-        } catch (HttpClientErrorException e) {
-            handleClientError(e);
-        } catch (HttpServerErrorException e) {
-            handleServerError(e);
+            String url = recommendationServiceUrl + "/api/recommendations/update-model";
+            log.info("Tentative d'envoi de {} feedbacks vers {}", recentFeedbacks.size(), url);
+
+            restTemplate.postForObject(url, recentFeedbacks, String.class);
+            log.info("{} feedbacks envoyés au service de recommandation avec succès", recentFeedbacks.size());
+
         } catch (Exception e) {
-            handleUnexpectedError(e);
+            log.warn("Service de recommandation non accessible: {}", e.getMessage());
+            throw new RuntimeException(
+                    "Service de recommandation non disponible. Veuillez vérifier que le service est démarré sur " + recommendationServiceUrl,
+                    e
+            );
         }
     }
 
     // ========================================
-    // MÉTHODES PRIVÉES - UTILITAIRES
+    // MÉTHODES PRIVÉES - MAPPING
     // ========================================
 
-    private Feedback findFeedbackOrThrow(String id) {
-        return feedbackRepository.findById(id)
-                .orElseThrow(() -> new FeedbackNotFoundException("Feedback non trouvé avec l'ID: " + id));
-    }
-
-    private void sendFeedbacksToExternalService(List<Feedback> feedbacks) {
-        String url = recommendationServiceUrl + "/api/recommendations/update-model";
-        log.info("🔄 Tentative d'envoi de {} feedbacks vers {}", feedbacks.size(), url);
-        restTemplate.postForObject(url, feedbacks, String.class);
-    }
-
-    // ========================================
-    // GESTION DES ERREURS HTTP
-    // ========================================
-
-    private void handleConnectionError(ResourceAccessException e) {
-        log.warn("⚠️ Service de recommandation non accessible: {}", e.getMessage());
-        throw new RuntimeException(
-                "Service de recommandation non disponible. Veuillez vérifier que le service est démarré sur " + recommendationServiceUrl,
-                e
-        );
-    }
-
-    private void handleClientError(HttpClientErrorException e) {
-        log.error("❌ Erreur client (status: {}): {}", e.getStatusCode(), e.getMessage());
-        throw new RuntimeException("Erreur lors de l'envoi des feedbacks: " + e.getStatusCode(), e);
-    }
-
-    private void handleServerError(HttpServerErrorException e) {
-        log.error("❌ Erreur serveur (status: {}): {}", e.getStatusCode(), e.getMessage());
-        throw new RuntimeException("Le service de recommandation a rencontré une erreur: " + e.getStatusCode(), e);
-    }
-
-    private void handleUnexpectedError(Exception e) {
-        log.error("❌ Erreur inattendue: {}", e.getMessage(), e);
-        throw new RuntimeException("Erreur lors de la communication avec le service de recommandation", e);
+    private FeedbackResponse mapToResponse(FeedbackDTO dto) {
+        return FeedbackResponse.builder()
+                .id(dto.getId())
+                .utilisateurId(dto.getUtilisateurId())
+                .recetteId(dto.getRecetteId())
+                .evaluation(dto.getEvaluation())
+                .commentaire(dto.getCommentaire())
+                .dateFeedback(dto.getDateFeedback())
+                .dateModification(dto.getDateModification())
+                .build();
     }
 }

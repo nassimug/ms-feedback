@@ -82,4 +82,5 @@ public class GlobalExceptionHandler {
         log.error("Erreur runtime: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
     }
+
 }

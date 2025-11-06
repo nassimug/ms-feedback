@@ -48,7 +48,7 @@ public class DotenvConfig implements EnvironmentPostProcessor {
             }
 
             if (dotenv == null || dotenv.entries().isEmpty()) {
-                logger.warning("⚠️ Aucun fichier .env trouvé dans les emplacements standards");
+                logger.warning("Aucun fichier .env trouvé dans les emplacements standards");
                 return;
             }
 
@@ -58,10 +58,10 @@ public class DotenvConfig implements EnvironmentPostProcessor {
             MapPropertySource propertySource = new MapPropertySource("dotenv-properties", envProperties);
             environment.getPropertySources().addFirst(propertySource);
 
-            logger.info("✅ Fichier .env chargé depuis: " + foundPath + " - " + envProperties.size() + " variables trouvées");
+            logger.info("Fichier .env chargé depuis: " + foundPath + " - " + envProperties.size() + " variables trouvées");
 
         } catch (Exception e) {
-            logger.severe("❌ Erreur lors du chargement du fichier .env : " + e.getMessage());
+            logger.severe("Erreur lors du chargement du fichier .env : " + e.getMessage());
         }
     }
 }

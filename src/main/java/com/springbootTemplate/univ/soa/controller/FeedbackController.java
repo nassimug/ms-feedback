@@ -22,19 +22,20 @@ import java.util.List;
 @RequestMapping("/api/feedbacks")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Feedbacks", description = "API de gestion des feedbacks utilisateurs")
+@Tag(name = "Feedbacks", description = "API de gestion des feedbacks utilisateurs - Communique avec le microservice Persistance (MySQL)")
 public class FeedbackController {
 
     private final FeedbackService feedbackService;
 
     @Operation(
             summary = "Créer un nouveau feedback",
-            description = "Permet à un utilisateur de créer un feedback pour une recette avec une note de 1 à 5 étoiles et un commentaire optionnel"
+            description = "Permet à un utilisateur de créer un feedback pour une recette avec une note de 1 à 5 étoiles et un commentaire optionnel. Les données sont stockées dans MySQL via le microservice Persistance."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Feedback créé avec succès",
                     content = @Content(schema = @Schema(implementation = FeedbackResponse.class))),
             @ApiResponse(responseCode = "400", description = "Données invalides"),
+            @ApiResponse(responseCode = "409", description = "L'utilisateur a déjà noté cette recette"),
             @ApiResponse(responseCode = "500", description = "Erreur serveur")
     })
     @PostMapping
@@ -52,7 +53,7 @@ public class FeedbackController {
 
     @Operation(
             summary = "Récupérer tous les feedbacks",
-            description = "Retourne la liste complète de tous les feedbacks enregistrés dans le système"
+            description = "Retourne la liste complète de tous les feedbacks enregistrés dans MySQL via le microservice Persistance"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Liste des feedbacks récupérée avec succès",
@@ -67,7 +68,7 @@ public class FeedbackController {
 
     @Operation(
             summary = "Récupérer un feedback par son ID",
-            description = "Retourne les détails d'un feedback spécifique en utilisant son identifiant unique"
+            description = "Retourne les détails d'un feedback spécifique en utilisant son identifiant unique (MySQL ID)"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Feedback trouvé",
@@ -76,7 +77,7 @@ public class FeedbackController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<FeedbackResponse> getFeedbackById(
-            @Parameter(description = "ID du feedback à récupérer", required = true, example = "507f1f77bcf86cd799439011")
+            @Parameter(description = "ID du feedback à récupérer", required = true, example = "1")
             @PathVariable String id) {
         log.info("GET /api/feedbacks/{} - Récupération du feedback", id);
         FeedbackResponse feedback = feedbackService.getFeedbackById(id);
@@ -93,7 +94,7 @@ public class FeedbackController {
     })
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<FeedbackResponse>> getFeedbacksByUserId(
-            @Parameter(description = "ID de l'utilisateur", required = true, example = "user1")
+            @Parameter(description = "ID de l'utilisateur", required = true, example = "1")
             @PathVariable String userId) {
         log.info("GET /api/feedbacks/user/{} - Récupération des feedbacks de l'utilisateur", userId);
         List<FeedbackResponse> feedbacks = feedbackService.getFeedbacksByUserId(userId);
@@ -110,7 +111,7 @@ public class FeedbackController {
     })
     @GetMapping("/recette/{recetteId}")
     public ResponseEntity<List<FeedbackResponse>> getFeedbacksByRecetteId(
-            @Parameter(description = "ID de la recette", required = true, example = "recette1")
+            @Parameter(description = "ID de la recette", required = true, example = "5")
             @PathVariable String recetteId) {
         log.info("GET /api/feedbacks/recette/{} - Récupération des feedbacks de la recette", recetteId);
         List<FeedbackResponse> feedbacks = feedbackService.getFeedbacksByRecetteId(recetteId);
@@ -127,7 +128,7 @@ public class FeedbackController {
     })
     @GetMapping("/recette/{recetteId}/average")
     public ResponseEntity<AverageRatingResponse> getAverageRatingByRecetteId(
-            @Parameter(description = "ID de la recette", required = true, example = "recette1")
+            @Parameter(description = "ID de la recette", required = true, example = "5")
             @PathVariable String recetteId) {
         log.info("GET /api/feedbacks/recette/{}/average - Calcul de la note moyenne", recetteId);
         AverageRatingResponse averageRating = feedbackService.getAverageRatingByRecetteId(recetteId);
@@ -146,7 +147,7 @@ public class FeedbackController {
     })
     @PutMapping("/{id}")
     public ResponseEntity<FeedbackResponse> updateFeedback(
-            @Parameter(description = "ID du feedback à mettre à jour", required = true, example = "507f1f77bcf86cd799439011")
+            @Parameter(description = "ID du feedback à mettre à jour", required = true, example = "1")
             @PathVariable String id,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Nouvelles valeurs pour le feedback",
@@ -169,7 +170,7 @@ public class FeedbackController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFeedback(
-            @Parameter(description = "ID du feedback à supprimer", required = true, example = "507f1f77bcf86cd799439011")
+            @Parameter(description = "ID du feedback à supprimer", required = true, example = "1")
             @PathVariable String id) {
         log.info("DELETE /api/feedbacks/{} - Suppression du feedback", id);
         feedbackService.deleteFeedback(id);
@@ -178,7 +179,7 @@ public class FeedbackController {
 
     @Operation(
             summary = "Envoyer les feedbacks au service de recommandation",
-            description = "⚠️ En développement - Envoie les feedbacks récents au service d'apprentissage par renforcement (RL) pour améliorer les recommandations"
+            description = "En développement - Envoie les feedbacks récents au service d'apprentissage par renforcement (RL) pour améliorer les recommandations"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Feedbacks envoyés avec succès"),
@@ -190,23 +191,23 @@ public class FeedbackController {
 
         try {
             feedbackService.sendFeedbacksToRecommendationService();
-            return ResponseEntity.ok("✅ Feedbacks envoyés avec succès au service de recommandation");
+            return ResponseEntity.ok("Feedbacks envoyés avec succès au service de recommandation");
         } catch (Exception e) {
-            log.warn("⚠️ Service de recommandation non disponible: {}", e.getMessage());
+            log.warn("Service de recommandation non disponible: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body("⚠️ Service de recommandation temporairement indisponible. Les feedbacks sont sauvegardés et seront synchronisés ultérieurement.");
+                    .body("Service de recommandation temporairement indisponible. Les feedbacks sont sauvegardés et seront synchronisés ultérieurement.");
         }
     }
 
     @Operation(
             summary = "Health check du service",
-            description = "Vérifie que le microservice Feedback est opérationnel"
+            description = "Vérifie que le microservice Feedback est opérationnel et peut communiquer avec le microservice Persistance"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Service en bonne santé")
     })
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("✅ Microservice Feedback is healthy");
+        return ResponseEntity.ok("Microservice Feedback is healthy and connected to Persistance service");
     }
 }
