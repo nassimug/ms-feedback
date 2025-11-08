@@ -15,7 +15,7 @@ public interface FeedbackService {
 
     FeedbackResponse getFeedbackById(String id);
 
-    List<FeedbackResponse> getFeedbacksByUserId(String userId);
+    List<FeedbackResponse> getFeedbacksByUtilisateurId(String utilisateurId);
 
     List<FeedbackResponse> getFeedbacksByRecetteId(String recetteId);
 
@@ -24,6 +24,4 @@ public interface FeedbackService {
     FeedbackResponse updateFeedback(String id, FeedbackUpdateRequest request);
 
     void deleteFeedback(String id);
-
-    void sendFeedbacksToRecommendationService();
 }
