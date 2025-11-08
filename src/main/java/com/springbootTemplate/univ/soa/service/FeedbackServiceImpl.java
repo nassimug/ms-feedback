@@ -5,9 +5,7 @@ import com.springbootTemplate.univ.soa.dto.*;
 import com.springbootTemplate.univ.soa.exception.FeedbackNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,10 +17,6 @@ import java.util.stream.Collectors;
 public class FeedbackServiceImpl implements FeedbackService {
 
     private final PersistanceClient persistanceClient;
-    private final RestTemplate restTemplate;
-
-    @Value("${recommendation.service.url}")
-    private String recommendationServiceUrl;
 
     @Override
     public FeedbackResponse createFeedback(FeedbackCreateRequest request) {
@@ -80,17 +74,17 @@ public class FeedbackServiceImpl implements FeedbackService {
     }
 
     @Override
-    public List<FeedbackResponse> getFeedbacksByUserId(String userId) {
-        log.info("Récupération des feedbacks de l'utilisateur: {}", userId);
+    public List<FeedbackResponse> getFeedbacksByUtilisateurId(String utilisateurId) {
+        log.info("Récupération des feedbacks de l'utilisateur: {}", utilisateurId);
 
         try {
-            Long utilisateurId = Long.parseLong(userId);
-            List<FeedbackDTO> feedbacks = persistanceClient.getFeedbacksByUtilisateurId(utilisateurId);
+            Long utilisateurIdLong = Long.parseLong(utilisateurId);
+            List<FeedbackDTO> feedbacks = persistanceClient.getFeedbacksByUtilisateurId(utilisateurIdLong);
             return feedbacks.stream()
                     .map(this::mapToResponse)
                     .collect(Collectors.toList());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Format d'ID utilisateur invalide: " + userId);
+            throw new IllegalArgumentException("Format d'ID utilisateur invalide: " + utilisateurId);
         }
     }
 
@@ -186,40 +180,6 @@ public class FeedbackServiceImpl implements FeedbackService {
             throw new FeedbackNotFoundException("Format d'ID invalide: " + id);
         } catch (RuntimeException e) {
             throw new FeedbackNotFoundException("Feedback non trouvé avec l'ID: " + id);
-        }
-    }
-
-    @Override
-    public void sendFeedbacksToRecommendationService() {
-        log.info("Envoi des feedbacks au service de recommandation");
-
-        try {
-            // Récupérer tous les feedbacks (ou une partie selon vos besoins)
-            List<FeedbackDTO> allFeedbacks = persistanceClient.getAllFeedbacks();
-
-            if (allFeedbacks.isEmpty()) {
-                log.info("Aucun feedback à envoyer");
-                return;
-            }
-
-            // Limiter à 100 feedbacks les plus récents
-            List<FeedbackDTO> recentFeedbacks = allFeedbacks.stream()
-                    .sorted((f1, f2) -> f2.getDateFeedback().compareTo(f1.getDateFeedback()))
-                    .limit(100)
-                    .collect(Collectors.toList());
-
-            String url = recommendationServiceUrl + "/api/recommendations/update-model";
-            log.info("Tentative d'envoi de {} feedbacks vers {}", recentFeedbacks.size(), url);
-
-            restTemplate.postForObject(url, recentFeedbacks, String.class);
-            log.info("{} feedbacks envoyés au service de recommandation avec succès", recentFeedbacks.size());
-
-        } catch (Exception e) {
-            log.warn("Service de recommandation non accessible: {}", e.getMessage());
-            throw new RuntimeException(
-                    "Service de recommandation non disponible. Veuillez vérifier que le service est démarré sur " + recommendationServiceUrl,
-                    e
-            );
         }
     }
 
