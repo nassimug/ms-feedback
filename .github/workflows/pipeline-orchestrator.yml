@@ -68,7 +68,10 @@ jobs:
     with:
       image-tag: ${{ needs.setup-config.outputs.image-tag }}
       microservice-name: ${{ needs.setup-config.outputs.microservice-name }}
-    secrets: inherit
+    secrets:
+      OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
+      OCI_AUTH_TOKEN: ${{ secrets.OCI_AUTH_TOKEN }}
+      OCI_TENANCY_NAMESPACE: ${{ secrets.OCI_TENANCY_NAMESPACE }}
     permissions:
       contents: read
       packages: write
@@ -84,7 +87,10 @@ jobs:
     with:
       image-tag: ${{ needs.setup-config.outputs.image-tag }}
       microservice-name: ${{ needs.setup-config.outputs.microservice-name }}
-    secrets: inherit
+    secrets:
+      OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
+      OCI_AUTH_TOKEN: ${{ secrets.OCI_AUTH_TOKEN }}
+      OCI_TENANCY_NAMESPACE: ${{ secrets.OCI_TENANCY_NAMESPACE }}
     permissions:
       contents: read
       packages: read
@@ -105,7 +111,15 @@ jobs:
       namespace: ${{ needs.setup-config.outputs.namespace }}
       microservice-name: ${{ needs.setup-config.outputs.microservice-name }}
       image-tag: ${{ needs.setup-config.outputs.image-tag }}
-    secrets: inherit
+    secrets:
+      OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
+      OCI_AUTH_TOKEN: ${{ secrets.OCI_AUTH_TOKEN }}
+      OCI_TENANCY_NAMESPACE: ${{ secrets.OCI_TENANCY_NAMESPACE }}
+      OCI_KUBECONFIG: ${{ secrets.OCI_KUBECONFIG }}
+      MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+      MYSQL_USER: ${{ secrets.MYSQL_USER }}
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
 
   # ============================================
   # 8. Résumé final
