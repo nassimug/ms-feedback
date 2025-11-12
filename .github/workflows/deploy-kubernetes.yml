@@ -89,6 +89,7 @@ jobs:
           OCI_CLI_TENANCY: ${{ secrets.OCI_CLI_TENANCY }}
           OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
           OCI_CLI_KEY_CONTENT: ${{ secrets.OCI_CLI_KEY_CONTENT }}
+          SUPPRESS_LABEL_WARNING: "True"
         run: |
           if [ -z "$OCI_CLI_USER" ]; then
             echo "⚠️  OCI_CLI_USER non défini, configuration OCI CLI ignorée"
@@ -101,22 +102,45 @@ jobs:
           chmod 700 ~/.oci
           
           # Créer le fichier de configuration
-          cat > ~/.oci/config << EOF
-          [DEFAULT]
-          user=$OCI_CLI_USER
-          fingerprint=$OCI_CLI_FINGERPRINT
-          tenancy=$OCI_CLI_TENANCY
-          region=$OCI_CLI_REGION
-          key_file=~/.oci/oci_api_key.pem
-          EOF
+          cat > ~/.oci/config << 'EOFCONFIG'
+[DEFAULT]
+user=$OCI_CLI_USER
+fingerprint=$OCI_CLI_FINGERPRINT
+tenancy=$OCI_CLI_TENANCY
+region=$OCI_CLI_REGION
+key_file=~/.oci/oci_api_key.pem
+EOFCONFIG
+          
+          # Substituer les variables
+          sed -i "s|\$OCI_CLI_USER|$OCI_CLI_USER|g" ~/.oci/config
+          sed -i "s|\$OCI_CLI_FINGERPRINT|$OCI_CLI_FINGERPRINT|g" ~/.oci/config
+          sed -i "s|\$OCI_CLI_TENANCY|$OCI_CLI_TENANCY|g" ~/.oci/config
+          sed -i "s|\$OCI_CLI_REGION|$OCI_CLI_REGION|g" ~/.oci/config
           
           chmod 600 ~/.oci/config
           
-          # Créer la clé privée
+          # Créer la clé privée avec le bon format
           echo "$OCI_CLI_KEY_CONTENT" > ~/.oci/oci_api_key.pem
+          
+          # Vérifier si la clé a déjà la ligne OCI_API_KEY
+          if ! grep -q "OCI_API_KEY" ~/.oci/oci_api_key.pem; then
+            echo "OCI_API_KEY" >> ~/.oci/oci_api_key.pem
+          fi
+          
           chmod 600 ~/.oci/oci_api_key.pem
           
           echo "✅ OCI CLI configuré"
+          
+          # Vérifier que la configuration fonctionne
+          echo "Test de la configuration OCI CLI..."
+          if oci iam region list --limit 1 > /dev/null 2>&1; then
+            echo "✅ OCI CLI fonctionne correctement"
+          else
+            echo "❌ OCI CLI ne fonctionne pas correctement"
+            echo "Contenu de ~/.oci/config:"
+            cat ~/.oci/config
+            exit 1
+          fi
 
       - name: Configure OKE Kubernetes context
         env:
@@ -131,47 +155,109 @@ jobs:
             echo "⚠️  Le kubeconfig utilise l'exec plugin OCI CLI"
             
             if [ -z "$OCI_CLI_USER" ]; then
-              echo ""
-              echo "╔═══════════════════════════════════════════════════════════════════════════╗"
-              echo "║  ❌ ERREUR: OCI CLI non configuré                                         ║"
-              echo "╚═══════════════════════════════════════════════════════════════════════════╝"
-              echo ""
-              echo "Le kubeconfig utilise l'exec plugin OCI qui nécessite une configuration"
-              echo "OCI CLI complète avec API keys."
-              echo ""
-              echo "SOLUTION: Créez ces 5 secrets dans GitHub:"
-              echo "  https://github.com/${{ github.repository }}/settings/secrets/actions"
-              echo ""
-              echo "  1. OCI_CLI_USER          - OCID de votre utilisateur OCI"
-              echo "  2. OCI_CLI_FINGERPRINT   - Fingerprint de votre API key"
-              echo "  3. OCI_CLI_TENANCY       - OCID de votre tenancy"
-              echo "  4. OCI_CLI_REGION        - Région (eu-paris-1)"
-              echo "  5. OCI_CLI_KEY_CONTENT   - Contenu complet de votre clé privée .pem"
-              echo ""
-              echo "Pour obtenir ces valeurs, dans OCI Cloud Shell:"
-              echo "  cat ~/.oci/config"
-              echo "  cat ~/.oci/oci_api_key.pem"
-              echo ""
-              echo "Voir le fichier VOS_VALEURS_SECRETS_GITHUB.txt dans le repo pour vos valeurs."
-              echo ""
+              echo "❌ ERREUR: OCI CLI non configuré"
+              echo "Créez les 5 secrets OCI_CLI_* dans GitHub"
               exit 1
             fi
             
-            echo "✅ OCI CLI est configuré, l'exec plugin devrait fonctionner"
+            echo "✅ OCI CLI est configuré"
+            echo "Génération d'un token Kubernetes..."
+            
+            # Extraire l'ID du cluster depuis le kubeconfig
+            CLUSTER_ID=$(grep -A 10 "exec:" ~/.kube/config | grep "cluster-id" | sed 's/.*cluster-id//' | tr -d ' -' | head -1)
+            
+            if [ -z "$CLUSTER_ID" ]; then
+              echo "❌ Impossible d'extraire l'ID du cluster depuis le kubeconfig"
+              cat ~/.kube/config
+              exit 1
+            fi
+            
+            echo "Cluster ID: $CLUSTER_ID"
+            
+            # Générer un token avec OCI CLI
+            TOKEN_OUTPUT=$(oci ce cluster generate-token --cluster-id "$CLUSTER_ID" --region ${{ env.OCI_REGION }} 2>&1)
+            
+            if [ $? -ne 0 ]; then
+              echo "❌ Échec de génération du token:"
+              echo "$TOKEN_OUTPUT"
+              echo ""
+              echo "Vérification de la configuration OCI:"
+              cat ~/.oci/config
+              echo ""
+              echo "Test de connexion OCI:"
+              oci iam region list --limit 1 || true
+              exit 1
+            fi
+            
+            # Extraire le token du JSON
+            TOKEN=$(echo "$TOKEN_OUTPUT" | jq -r '.token // .data.token // .status.token // empty' 2>/dev/null)
+            
+            if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+              echo "⚠️  Impossible d'extraire le token du JSON, essai d'une approche alternative..."
+              
+              # Remplacer l'exec plugin par un appel direct dans le kubeconfig
+              echo "Modification du kubeconfig pour utiliser l'exec plugin correctement..."
+              
+              # S'assurer que l'environnement SUPPRESS_LABEL_WARNING est défini pour l'exec
+              sed -i '/exec:/a\      env:\n      - name: SUPPRESS_LABEL_WARNING\n        value: "True"' ~/.kube/config
+            else
+              echo "✅ Token généré avec succès (longueur: ${#TOKEN})"
+              
+              # Extraire le serveur depuis le kubeconfig
+              SERVER=$(grep "server:" ~/.kube/config | head -1 | awk '{print $2}')
+              
+              # Extraire le nom du cluster et de l'utilisateur
+              CLUSTER_NAME=$(grep -A 2 "clusters:" ~/.kube/config | grep "name:" | head -1 | awk '{print $2}')
+              USER_NAME=$(grep -A 2 "users:" ~/.kube/config | grep "name:" | head -1 | awk '{print $2}')
+              CONTEXT_NAME=$(grep "current-context:" ~/.kube/config | awk '{print $2}')
+              
+              # Créer un nouveau kubeconfig avec le token
+              cat > ~/.kube/config << 'EOFKUBE'
+apiVersion: v1
+clusters:
+- cluster:
+    insecure-skip-tls-verify: true
+    server: SERVER_PLACEHOLDER
+  name: CLUSTER_NAME_PLACEHOLDER
+contexts:
+- context:
+    cluster: CLUSTER_NAME_PLACEHOLDER
+    user: USER_NAME_PLACEHOLDER
+  name: CONTEXT_NAME_PLACEHOLDER
+current-context: CONTEXT_NAME_PLACEHOLDER
+kind: Config
+preferences: {}
+users:
+- name: USER_NAME_PLACEHOLDER
+  user:
+    token: TOKEN_PLACEHOLDER
+EOFKUBE
+              
+              # Remplacer les placeholders
+              sed -i "s|SERVER_PLACEHOLDER|$SERVER|g" ~/.kube/config
+              sed -i "s|CLUSTER_NAME_PLACEHOLDER|$CLUSTER_NAME|g" ~/.kube/config
+              sed -i "s|USER_NAME_PLACEHOLDER|$USER_NAME|g" ~/.kube/config
+              sed -i "s|CONTEXT_NAME_PLACEHOLDER|$CONTEXT_NAME|g" ~/.kube/config
+              sed -i "s|TOKEN_PLACEHOLDER|$TOKEN|g" ~/.kube/config
+              
+              chmod 600 ~/.kube/config
+              echo "✅ Kubeconfig modifié pour utiliser le token"
+            fi
           else
-            echo "✅ Le kubeconfig utilise un token (pas d'exec plugin)"
+            echo "✅ Le kubeconfig utilise déjà un token"
           fi
           
           echo ""
           echo "Vérification de la connexion au cluster..."
-          if ! kubectl cluster-info; then
+          if ! kubectl cluster-info 2>&1; then
             echo ""
             echo "❌ Échec de connexion au cluster Kubernetes"
             echo ""
-            echo "Vérifiez:"
-            echo "  1. Le secret OCI_KUBECONFIG est-il correctement encodé en base64?"
-            echo "  2. Si le kubeconfig utilise exec plugin, OCI CLI est-il configuré?"
-            echo "  3. Le cluster OKE est-il accessible?"
+            echo "DEBUG - Contenu du kubeconfig:"
+            cat ~/.kube/config
+            echo ""
+            echo "DEBUG - Test OCI CLI:"
+            oci iam region list --limit 1 || echo "OCI CLI ne fonctionne pas"
             echo ""
             exit 1
           fi

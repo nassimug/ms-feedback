@@ -17,6 +17,8 @@ spec:
         app: ${MICROSERVICE_NAME}
         version: ${VERSION}
     spec:
+      imagePullSecrets:
+      - name: ocir-secret
       containers:
       - name: ${MICROSERVICE_NAME}
         image: ${IMAGE_URL}:${IMAGE_TAG}
