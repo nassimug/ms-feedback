@@ -127,8 +127,11 @@ jobs:
       - name: Prepare image tags
         id: tags
         run: |
+          # Sanitiser le nom du microservice (remplacer points par tirets, minuscules)
+          MICROSERVICE_NAME_SANITIZED=$(echo "${{ inputs.microservice-name }}" | tr '.' '-' | tr '[:upper:]' '[:lower:]')
+          
           TENANCY_NAMESPACE="$OCI_TENANCY_NAMESPACE"
-          REPO_NAME="smartdish/${{ inputs.microservice-name }}"
+          REPO_NAME="smartdish/${MICROSERVICE_NAME_SANITIZED}"
           IMAGE_TAG="${{ inputs.image-tag }}"
           FULL_IMAGE="${{ env.OCI_REGISTRY }}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG}"
           
@@ -137,6 +140,8 @@ jobs:
           echo "short-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           
           echo "Registry: ${{ env.OCI_REGISTRY }}"
+          echo "Microservice original: ${{ inputs.microservice-name }}"
+          echo "Microservice sanitized: ${MICROSERVICE_NAME_SANITIZED}"
           echo "Tenancy: ${TENANCY_NAMESPACE}"
           echo "Repository: ${REPO_NAME}"
           echo "Tag: ${IMAGE_TAG}"
