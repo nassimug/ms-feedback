@@ -126,12 +126,26 @@ jobs:
         run: |
           echo "Configuration des secrets..."
           
+          # Variables pour le secret OCIR
+          DOCKER_SERVER="fra.ocir.io"
+          DOCKER_USERNAME="${{ secrets.OCI_TENANCY_NAMESPACE }}/${{ secrets.OCI_USERNAME }}"
+          DOCKER_PASSWORD="${{ secrets.OCI_AUTH_TOKEN }}"
+          
+          echo "Registry: $DOCKER_SERVER"
+          echo "Username: ${DOCKER_USERNAME%%/*}/***"
+          
+          # Vérifier que les variables sont définies
+          if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
+            echo "❌ Erreur: OCI_TENANCY_NAMESPACE, OCI_USERNAME ou OCI_AUTH_TOKEN manquant"
+            exit 1
+          fi
+          
           # Secret OCIR
           kubectl create secret docker-registry ocir-secret \
-            --docker-server=cdg.ocir.io \
-            --docker-username="${{ secrets.OCI_TENANCY_NAMESPACE }}/${{ secrets.OCI_USERNAME }}" \
-            --docker-password="${{ secrets.OCI_AUTH_TOKEN }}" \
-            --namespace=${{ env.NAMESPACE }} \
+            --docker-server="$DOCKER_SERVER" \
+            --docker-username="$DOCKER_USERNAME" \
+            --docker-password="$DOCKER_PASSWORD" \
+            --namespace="${{ env.NAMESPACE }}" \
             --dry-run=client -o yaml | kubectl apply -f -
           
           echo "✅ Secret OCIR configuré"
@@ -144,7 +158,7 @@ jobs:
             --from-literal=MYSQL_USER="${{ secrets.MYSQL_USER }}" \
             --from-literal=MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
             --from-literal=MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
-            --namespace=${{ env.NAMESPACE }} \
+            --namespace="${{ env.NAMESPACE }}" \
             --dry-run=client -o yaml | kubectl apply -f -
           
           echo "✅ Secrets MySQL configurés"
