@@ -44,7 +44,7 @@ tests/newman/
 
 ---
 
-## 🔧 Corrections Appliquées (9 itérations)
+## 🔧 Corrections Appliquées (10 itérations)
 
 ### 1️⃣ OS Ubuntu Corrigé
 
@@ -180,6 +180,108 @@ Installation manuelle de Minikube :
 - ✅ Pas de rate limit API GitHub
 - ✅ kubectl correctement configuré
 - ✅ Plus rapide et fiable
+
+---
+
+### 🔟 MySQL Health Checks Socket Unix (FINAL)
+
+**Problème** :
+```
+Liveness probe failed: mysqladmin: connect to server at 'localhost' failed
+error: 'Can't connect to local MySQL server through socket '/var/run/mysqld/mysqld.sock' (2)'
+
+Restart Count: 4
+Status: Running (mais jamais Ready)
+```
+
+**Cause** : 
+- `mysqladmin ping -h localhost` utilise le **socket Unix** (`/var/run/mysqld/mysqld.sock`)
+- Pendant l'initialisation, le socket **n'existe pas encore**
+- Le health check échoue → Pod redémarre en boucle
+- MySQL ne devient **jamais Ready**
+
+**Impact** :
+```
+kubectl apply → OK ✅
+Deployments created → OK ✅
+MAIS:
+mysql: READY 0/1 ❌
+univ-soa: READY 0/2 ❌
+InitContainer attend MySQL → timeout ❌
+```
+
+**Solution** :
+
+**Fichier** : `k8s/minikube/mysql.yaml`
+
+**AVANT** (socket Unix) :
+```yaml
+livenessProbe:
+  exec:
+    command:
+    - mysqladmin
+    - ping
+    - -h
+    - localhost  # ❌ Utilise socket Unix
+  initialDelaySeconds: 30
+readinessProbe:
+  exec:
+    command:
+    - mysqladmin
+    - ping
+    - -h
+    - localhost  # ❌ Utilise socket Unix
+  initialDelaySeconds: 5
+```
+
+**APRÈS** (TCP/IP) :
+```yaml
+livenessProbe:
+  exec:
+    command:
+    - sh
+    - -c
+    - mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD
+  initialDelaySeconds: 45  # Plus de temps pour init
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5      # Plus tolérant
+
+readinessProbe:
+  exec:
+    command:
+    - sh
+    - -c
+    - mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD
+  initialDelaySeconds: 30  # Plus de temps pour init
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 10     # Très tolérant
+```
+
+**Changements clés** :
+1. ✅ `-h 127.0.0.1` au lieu de `-h localhost` (force TCP/IP)
+2. ✅ `-u root -p$MYSQL_ROOT_PASSWORD` (authentification complète)
+3. ✅ `sh -c` pour interpréter la variable `$MYSQL_ROOT_PASSWORD`
+4. ✅ `initialDelaySeconds` augmenté (45s/30s au lieu de 30s/5s)
+5. ✅ `failureThreshold` augmenté (5/10 au lieu de 3/3)
+
+**Résultat attendu** :
+```
+1. MySQL Pod démarre
+2. Initialisation MySQL (15-20s)
+3. Readiness probe après 30s → ping TCP OK ✅
+4. MySQL devient Ready! 🎉
+5. InitContainer détecte MySQL:3306 OK ✅
+6. App démarre et se connecte ✅
+7. Tout fonctionne! 🚀
+```
+
+**Avantages** :
+- ✅ Health check fonctionne pendant l'initialisation
+- ✅ MySQL devient Ready rapidement
+- ✅ InitContainer peut détecter MySQL
+- ✅ Plus de CrashLoopBackOff
 
 ---
 
@@ -429,7 +531,8 @@ kubectl get configmap univ-soa-config -n soa-integration -o yaml
 6. `fix: installation manuelle Minikube pour éviter rate limit + config kubectl`
 7. `fix: remplacement H2 par MySQL deployment dans Kubernetes`
 8. `fix: minikube image load + suppression kubectl set image (CRITIQUE)`
-9. `fix: MongoTemplate optionnel + InitContainer wait-for-mysql (FINAL)`
+9. `fix: MongoTemplate optionnel + InitContainer wait-for-mysql`
+🔟 `fix: MySQL health checks TCP au lieu de socket Unix (FINAL)`
 
 ---
 
