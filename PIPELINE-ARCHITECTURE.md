@@ -265,21 +265,36 @@ Les artifacts sont automatiquement partagés entre workflows :
 
 ### ✅ TOUS les 7 jobs sont VISIBLES
 
-Avec l'architecture modulaire, GitHub Actions affiche **TOUS les workflows** dans l'interface :
+Avec l'architecture modulaire, GitHub Actions affiche **TOUS les workflows** dans l'interface.
 
+#### Comment voir tous les jobs
+
+**Sur GitHub Actions** :
+1. Aller dans **Actions** → Cliquer sur le workflow run
+2. Dans la vue principale, vous verrez le pipeline avec les jobs **appelés** (reusable workflows)
+3. **Cliquer sur chaque job** pour voir son exécution détaillée
+
+**Structure d'affichage** :
 ```
-GitHub Actions → Workflow Run → Jobs (liste complète) :
-
-✅ 1️⃣ Configuration & Variables
-✅ 2️⃣ Build Maven
-✅ 3️⃣ Check Code Coverage
-✅ 4️⃣ Build Docker Image
-✅ 5️⃣ Check Image Conformity & Security
-✅ 6️⃣ Deploy to Kubernetes
-✅ 7️⃣ Integration Tests (Newman)
+CI/CD Pipeline Orchestrator (workflow principal)
+├─ 1️⃣ Configuration & Variables    ← Cliquer pour voir le détail
+├─ 2️⃣ Build Maven                  ← Cliquer pour voir le détail
+├─ 3️⃣ Check Code Coverage          ← Cliquer pour voir le détail
+├─ 4️⃣ Build Docker Image           ← Cliquer pour voir le détail
+├─ 5️⃣ Check Image Conformity       ← Cliquer pour voir le détail
+├─ 6️⃣ Deploy to Kubernetes         ← Cliquer pour voir le détail
+└─ 7️⃣ Integration Tests (Newman)   ← Cliquer pour voir le détail
 ```
 
-**Plus de jobs masqués !** Chaque workflow apparaît comme un job distinct.
+#### 🔍 Différence avec les jobs standards
+
+**Avec workflows réutilisables** (`workflow_call`) :
+- Chaque job **appelle** un workflow externe
+- Les jobs s'affichent mais sont **cliquables** pour voir le détail
+- Le graphe montre les dépendances entre workflows
+- **TOUS visibles**, aucun masqué
+
+**Avantage** : Organisation claire et logs séparés par responsabilité
 
 ---
 
@@ -479,9 +494,108 @@ Actions → pipeline-orchestrator.yml → Run workflow
 
 ---
 
+## 🔧 Troubleshooting
+
+### Problème : Jobs non visibles sur GitHub
+
+**Symptômes** :
+- Certains jobs n'apparaissent pas
+- Le graphe semble incomplet
+- Erreurs YAML
+
+**Solutions** :
+
+#### 1. Vérifier que les anciens fichiers sont supprimés
+
+```bash
+# Lister les workflows
+ls .github/workflows/
+
+# Devrait montrer SEULEMENT:
+# - pipeline-orchestrator.yml
+# - config-vars.yml
+# - build-maven.yml
+# - check-coverage.yml
+# - build-docker-image.yml
+# - check-conformity-image.yml
+# - deploy-kubernetes.yml
+# - integration-tests.yml
+# - sonar-analysis.yml (optionnel)
+```
+
+**Si vous voyez** `ci-cd-pipeline.yml` ou `pipeline-manual.yml` :
+```bash
+git rm .github/workflows/ci-cd-pipeline.yml
+git rm .github/workflows/pipeline-manual.yml
+git commit -m "fix: suppression anciens workflows"
+git push
+```
+
+#### 2. Vérifier la syntaxe YAML
+
+```bash
+# Installer yamllint
+pip install yamllint
+
+# Vérifier tous les workflows
+yamllint .github/workflows/
+```
+
+#### 3. Forcer le rafraîchissement sur GitHub
+
+```bash
+# Commit vide pour forcer le trigger
+git commit --allow-empty -m "chore: trigger pipeline"
+git push
+```
+
+#### 4. Vérifier les permissions
+
+Dans GitHub → Settings → Actions → General :
+- ✅ "Allow all actions and reusable workflows"
+- ✅ "Read and write permissions"
+
+### Problème : Erreur "No event triggers defined in `on`"
+
+**Cause** : Un fichier workflow n'a pas de section `on:` valide
+
+**Solution** :
+1. Ouvrir le fichier mentionné dans l'erreur
+2. Vérifier qu'il a soit :
+   - `on: workflow_call:` (pour workflow réutilisable)
+   - `on: push:` / `on: pull_request:` (pour workflow normal)
+
+### Problème : Les jobs s'exécutent mais ne s'affichent pas
+
+**Cause** : Limitation de l'UI GitHub pour les workflows réutilisables
+
+**Comprendre** :
+- Les workflows réutilisables (`workflow_call`) s'affichent différemment
+- Ils apparaissent comme des "jobs appelants" dans le workflow principal
+- Cliquer sur chaque job pour voir son exécution détaillée
+
+**C'est normal !** Tous les jobs sont là, il faut juste cliquer dessus.
+
+### Problème : Pipeline échoue avec "artifact not found"
+
+**Cause** : Les artifacts ne sont pas partagés entre workflows
+
+**Solution** : Les workflows réutilisables dans le même workflow run partagent automatiquement les artifacts. Vérifiez :
+1. Que le job qui upload l'artifact s'est exécuté avec succès
+2. Que le nom de l'artifact est correct (ex: `application-jar`)
+
+### Besoin d'aide ?
+
+Consultez les logs détaillés :
+1. GitHub → Actions → Workflow run
+2. Cliquer sur un job spécifique
+3. Voir les logs step par step
+
+---
+
 **Date** : 29 novembre 2025  
 **Architecture** : Modulaire avec orchestrateur  
 **Workflows** : 8 fichiers (1 orchestrateur + 7 workflows)  
-**Visibilité** : 100% des jobs visibles  
+**Visibilité** : 100% des jobs visibles (cliquables)  
 **Status** : ✅ Production Ready
 
