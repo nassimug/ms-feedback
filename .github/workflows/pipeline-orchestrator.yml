@@ -59,6 +59,11 @@ jobs:
     name: "7️⃣ Integration Tests (Newman)"
     needs: deploy-kubernetes
     uses: ./.github/workflows/integration-tests.yml
+    with:
+      environment: integration
+      service-url: ${{ needs.deploy-kubernetes.outputs.service-url }}
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Job 8: Log All Components URLs
   log-components:
