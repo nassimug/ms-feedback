@@ -43,6 +43,9 @@ spec:
         ports:
         - containerPort: 3306
           name: mysql
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
         resources:
           requests:
             memory: "256Mi"
@@ -51,16 +54,12 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         livenessProbe:
-          exec:
-            command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
-          initialDelaySeconds: 90
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 60
           periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 10
+          timeoutSeconds: 3
+          failureThreshold: 5
         readinessProbe:
           exec:
             command:
@@ -68,8 +67,10 @@ spec:
             - ping
             - -h
             - localhost
-          initialDelaySeconds: 60
+            - -uroot
+            - -ppassword
+          initialDelaySeconds: 30
           periodSeconds: 5
-          timeoutSeconds: 5
-          failureThreshold: 20
+          timeoutSeconds: 3
+          failureThreshold: 10
 
