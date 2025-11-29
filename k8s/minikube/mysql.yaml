@@ -53,21 +53,23 @@ spec:
         livenessProbe:
           exec:
             command:
-            - sh
-            - -c
-            - mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD
-          initialDelaySeconds: 45
+            - mysqladmin
+            - ping
+            - -h
+            - localhost
+          initialDelaySeconds: 90
           periodSeconds: 10
           timeoutSeconds: 5
-          failureThreshold: 5
+          failureThreshold: 10
         readinessProbe:
           exec:
             command:
-            - sh
-            - -c
-            - mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD
-          initialDelaySeconds: 30
+            - mysqladmin
+            - ping
+            - -h
+            - localhost
+          initialDelaySeconds: 60
           periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 10
+          timeoutSeconds: 5
+          failureThreshold: 20
 

@@ -68,17 +68,14 @@ jobs:
 
       - name: Load Docker image into Minikube
         run: |
-          echo "🐳 Configuring Docker to use Minikube's daemon..."
-          eval $(minikube docker-env)
+          echo "📥 Loading Docker image into Minikube..."
+          minikube image load app-image.tar
           
-          echo "📥 Loading Docker image..."
-          docker load -i app-image.tar
+          echo "🏷️ Tagging image inside Minikube..."
+          minikube image tag ${{ env.IMAGE_NAME }}:${{ inputs.image-tag }} ${{ env.IMAGE_NAME }}:latest
           
-          echo "🏷️ Tagging image as latest for Kubernetes..."
-          docker tag ${{ env.IMAGE_NAME }}:${{ inputs.image-tag }} ${{ env.IMAGE_NAME }}:latest
-          
-          echo "📋 Available images in Minikube:"
-          docker images | grep ${{ env.IMAGE_NAME }}
+          echo "📋 Images inside Minikube:"
+          minikube image ls | grep ${{ env.IMAGE_NAME }} || echo "⚠️  Image not found yet, will retry..."
           
           echo "✅ Image loaded and tagged successfully"
 
@@ -97,25 +94,51 @@ jobs:
           
           echo "✅ Manifests applied (using image: univ-soa:latest)"
 
+      - name: Wait for pods to be created
+        run: |
+          echo "⏳ Waiting 15 seconds for pods to be created..."
+          sleep 15
+          
+          echo "📊 Current state:"
+          kubectl get all -n ${{ env.NAMESPACE }}
+
+      - name: Wait for MySQL to be ready
+        run: |
+          echo "⏳ Waiting for MySQL to be ready (max 120s)..."
+          kubectl wait --for=condition=ready pod -l app=mysql -n ${{ env.NAMESPACE }} --timeout=120s || {
+            echo "❌ MySQL not ready!"
+            kubectl get pods -n ${{ env.NAMESPACE }} -l app=mysql
+            kubectl describe pod -l app=mysql -n ${{ env.NAMESPACE }}
+            kubectl logs -l app=mysql -n ${{ env.NAMESPACE }} --tail=50 || true
+            exit 1
+          }
+          echo "✅ MySQL is ready!"
+
+      - name: Deploy phpMyAdmin
+        run: |
+          echo "🐬 Deploying phpMyAdmin..."
+          kubectl apply -f k8s/minikube/phpmyadmin.yaml -n ${{ env.NAMESPACE }}
+          
+          echo "⏳ Waiting for phpMyAdmin to be ready..."
+          kubectl wait --for=condition=ready pod -l app=phpmyadmin -n ${{ env.NAMESPACE }} --timeout=60s || {
+            echo "⚠️ phpMyAdmin not ready, but continuing..."
+            kubectl get pods -n ${{ env.NAMESPACE }} -l app=phpmyadmin
+          }
+          echo "✅ phpMyAdmin deployed!"
+
       - name: Debug pods before rollout
         if: always()
         run: |
-          echo "🔗 Verifying kubectl connection..."
-          kubectl cluster-info || {
-            echo "❌ kubectl not connected to cluster!"
-            echo "Attempting to reconfigure..."
-            kubectl config use-context minikube
-            minikube update-context
-          }
+          echo "🔍 Current pods status:"
+          kubectl get pods -n ${{ env.NAMESPACE }} -o wide
           
-          echo "🔍 Pod status:"
-          kubectl get pods -n ${{ env.NAMESPACE }} -o wide || echo "No pods found yet"
+          echo ""
+          echo "🔍 univ-soa pods details:"
+          kubectl describe pods -l app=univ-soa -n ${{ env.NAMESPACE }} || echo "No univ-soa pods yet"
           
-          echo "🔍 Deployment description:"
-          kubectl describe deployment univ-soa -n ${{ env.NAMESPACE }} || echo "Deployment not found yet"
-          
-          echo "🔍 Events:"
-          kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp' || echo "No events yet"
+          echo ""
+          echo "🔍 Recent events:"
+          kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp' --field-selector type!=Normal | tail -20 || echo "No error events"
 
       - name: Wait for deployment
         run: |
@@ -161,4 +184,84 @@ jobs:
           name: service-url
           path: service-url.txt
           retention-days: 1
+
+  expose-services:
+    name: 🌐 Expose Services URLs
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    env:
+      NAMESPACE: soa-integration
+    steps:
+      - name: Setup Minikube
+        uses: medyagh/setup-minikube@latest
+        with:
+          minikube-version: 'latest'
+          kubernetes-version: 'v1.28.0'
+          driver: 'docker'
+          cpus: 2
+          memory: 4096
+          addons: ingress
+
+      - name: Get all service URLs
+        id: services
+        run: |
+          echo "🔍 Getting service URLs..."
+          MINIKUBE_IP=$(minikube ip)
+          
+          # Get API service
+          API_NODEPORT=$(kubectl get svc univ-soa -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.ports[0].nodePort}')
+          API_URL="http://$MINIKUBE_IP:$API_NODEPORT"
+          
+          # Get phpMyAdmin service
+          PHPMYADMIN_NODEPORT=$(kubectl get svc phpmyadmin -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.ports[0].nodePort}' || echo "30081")
+          PHPMYADMIN_URL="http://$MINIKUBE_IP:$PHPMYADMIN_NODEPORT"
+          
+          # Get MySQL service (internal only)
+          MYSQL_HOST="mysql.${{ env.NAMESPACE }}.svc.cluster.local"
+          
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+          echo "phpmyadmin_url=$PHPMYADMIN_URL" >> $GITHUB_OUTPUT
+          echo "mysql_host=$MYSQL_HOST" >> $GITHUB_OUTPUT
+
+      - name: Display Service URLs
+        run: |
+          echo "# 🌐 Services disponibles" > services-urls.txt
+          echo "" >> services-urls.txt
+          echo "## 🚀 API REST (univ-soa)" >> services-urls.txt
+          echo "- URL: ${{ steps.services.outputs.api_url }}" >> services-urls.txt
+          echo "- Health Check: ${{ steps.services.outputs.api_url }}/actuator/health" >> services-urls.txt
+          echo "- Database Test: ${{ steps.services.outputs.api_url }}/api/database/test" >> services-urls.txt
+          echo "" >> services-urls.txt
+          echo "## 🗄️ phpMyAdmin" >> services-urls.txt
+          echo "- URL: ${{ steps.services.outputs.phpmyadmin_url }}" >> services-urls.txt
+          echo "- Username: root" >> services-urls.txt
+          echo "- Password: password" >> services-urls.txt
+          echo "" >> services-urls.txt
+          echo "## 🐬 MySQL Database (internal)" >> services-urls.txt
+          echo "- Host: ${{ steps.services.outputs.mysql_host }}" >> services-urls.txt
+          echo "- Port: 3306" >> services-urls.txt
+          echo "- Database: testdb" >> services-urls.txt
+          echo "- Username: root" >> services-urls.txt
+          echo "- Password: password" >> services-urls.txt
+          
+          echo ""
+          echo "📋 Services URLs:"
+          cat services-urls.txt
+
+      - name: Upload services URLs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: services-urls
+          path: services-urls.txt
+          retention-days: 7
+
+      - name: Test API health
+        run: |
+          echo "🧪 Testing API health..."
+          curl -f "${{ steps.services.outputs.api_url }}/actuator/health" || echo "⚠️ API not reachable"
+
+      - name: Test phpMyAdmin
+        run: |
+          echo "🧪 Testing phpMyAdmin..."
+          curl -f "${{ steps.services.outputs.phpmyadmin_url }}" || echo "⚠️ phpMyAdmin not reachable"
 

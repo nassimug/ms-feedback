@@ -25,23 +25,48 @@ jobs:
 
       - name: Install Newman dependencies
         working-directory: tests/newman
-        run: npm install --legacy-peer-deps
+        run: |
+          echo "📦 Installing Newman and dependencies..."
+          npm install --legacy-peer-deps
+          echo "✅ Dependencies installed"
+          echo "📋 Installed packages:"
+          npm list --depth=0 || true
 
       - name: Run Newman integration tests
         working-directory: tests/newman
+        env:
+          NODE_PATH: ./node_modules
         run: |
           SERVICE_URL=$(cat ../../service-url.txt)
-          echo "Testing against: $SERVICE_URL"
+          echo "🎯 Testing against: $SERVICE_URL"
           
+          # Update environment file with service URL
           if [ -f "env.json" ]; then
-            jq --arg url "$SERVICE_URL" '.values[0].value = $url' env.json > env.tmp.json || cp env.json env.tmp.json
+            echo "📝 Updating environment with service URL..."
+            jq --arg url "$SERVICE_URL" \
+              '(.values[] | select(.key == "baseUrl") | .value) = $url' \
+              env.json > env.tmp.json || cp env.json env.tmp.json
+            
+            echo "✅ Environment updated:"
+            cat env.tmp.json | jq '.'
+          else
+            echo "⚠️  No env.json found, creating one with service URL"
+            echo "{\"id\":\"ci\",\"name\":\"CI Environment\",\"values\":[{\"key\":\"baseUrl\",\"value\":\"$SERVICE_URL\"}]}" > env.tmp.json
           fi
           
-          node index.js \
-            --collection ./collection.json \
-            --environment ./env.tmp.json \
-            --data ./dataset.json \
-            --reporters cli,json,htmlextra
+          # Create results directory
+          mkdir -p ./newman-results
+          
+          echo "🚀 Starting Newman tests..."
+          npx newman run ./collection.json \
+            -e ./env.tmp.json \
+            -d ./dataset.json \
+            --reporters cli,json,htmlextra \
+            --reporter-json-export ./newman-results/results.json \
+            --reporter-htmlextra-export ./newman-results/report.html \
+            --timeout-request 30000 \
+            --insecure \
+            --color on
 
       - name: Upload test results
         if: always()

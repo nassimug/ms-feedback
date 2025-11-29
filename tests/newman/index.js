@@ -40,7 +40,7 @@ if (!fs.existsSync(outputDir)) {
 
 // Build Newman options
 const opts = {
-  collection: require(path.resolve(collectionPath)),
+  collection: path.resolve(collectionPath),
   reporters: reporters.split(','),
   reporter: {
     htmlextra: {
@@ -58,7 +58,7 @@ const opts = {
 // Add environment if exists
 if (fs.existsSync(envPath)) {
   console.log('✅ Loading environment file...');
-  opts.environment = require(path.resolve(envPath));
+  opts.environment = path.resolve(envPath);
 } else {
   console.warn('⚠️  Environment file not found, continuing without it');
 }
