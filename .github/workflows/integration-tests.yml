@@ -11,9 +11,6 @@ on:
         description: 'Service URL to test'
         required: false
         type: string
-    secrets:
-      GITHUB_TOKEN:
-        required: true
 
 jobs:
   newman-tests:
