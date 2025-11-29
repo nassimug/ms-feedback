@@ -225,6 +225,11 @@ Consultez **`PIPELINE-ARCHITECTURE.md`** pour :
    - Configuration H2 en mémoire (pas de MySQL/MongoDB externe requis)
    - Raison : L'application crashait au démarrage avec "Failed to bind properties"
 
+6. **✅ Rate limit GitHub API + kubectl connection**
+   - Installation manuelle de Minikube (au lieu de l'action)
+   - Configuration explicite de kubectl (`kubectl config use-context minikube`)
+   - Raison : Rate limit API GitHub + kubectl pointait vers localhost:8080
+
 ### État actuel
 
 ✅ Tous les workflows sont corrigés et fonctionnels  

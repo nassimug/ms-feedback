@@ -32,18 +32,39 @@ jobs:
           name: docker-image
           path: ./
 
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.10.0
-        with:
-          minikube version: 'v1.32.0'
-          kubernetes version: 'v1.28.0'
-          driver: docker
-          start args: '--memory=4096 --cpus=2'
+      - name: Setup Minikube (manual installation)
+        run: |
+          echo "📦 Installing Minikube..."
+          curl -LO https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+          rm minikube-linux-amd64
+          
+          echo "🚀 Starting Minikube..."
+          minikube start --driver=docker --memory=4096 --cpus=2 --kubernetes-version=v1.28.0
+          
+          echo "⏳ Waiting for Minikube to be ready..."
+          minikube status
+          
+          echo "✅ Minikube started successfully"
+
+      - name: Configure kubectl
+        run: |
+          echo "🔧 Configuring kubectl..."
+          kubectl config use-context minikube
+          kubectl config view
+          
+          echo "✅ kubectl configured"
 
       - name: Verify Minikube
         run: |
+          echo "🔍 Cluster info:"
           kubectl cluster-info
+          
+          echo "📊 Nodes:"
           kubectl get nodes
+          
+          echo "🐳 Docker env:"
+          minikube docker-env
 
       - name: Load Docker image into Minikube
         run: |
@@ -85,14 +106,22 @@ jobs:
       - name: Debug pods before rollout
         if: always()
         run: |
+          echo "🔗 Verifying kubectl connection..."
+          kubectl cluster-info || {
+            echo "❌ kubectl not connected to cluster!"
+            echo "Attempting to reconfigure..."
+            kubectl config use-context minikube
+            minikube update-context
+          }
+          
           echo "🔍 Pod status:"
-          kubectl get pods -n ${{ env.NAMESPACE }} -o wide
+          kubectl get pods -n ${{ env.NAMESPACE }} -o wide || echo "No pods found yet"
           
           echo "🔍 Deployment description:"
-          kubectl describe deployment univ-soa -n ${{ env.NAMESPACE }}
+          kubectl describe deployment univ-soa -n ${{ env.NAMESPACE }} || echo "Deployment not found yet"
           
           echo "🔍 Events:"
-          kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp'
+          kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp' || echo "No events yet"
 
       - name: Wait for deployment
         run: |
