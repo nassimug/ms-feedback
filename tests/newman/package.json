@@ -1,0 +1,13 @@
+{
+  "name": "univ-soa-integration-tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node index.js --collection ./collection.json --env ./env.json --data ./dataset.json"
+  },
+  "dependencies": {
+    "newman": "^5.0.0",
+    "minimist": "^1.2.8"
+  }
+}
+

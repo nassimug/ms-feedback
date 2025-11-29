@@ -58,110 +58,31 @@ jobs:
     secrets: inherit
 
   # ============================================
-  # 4.5. Test des secrets OCI (DEBUG)
-  # ============================================
-  test-secrets:
-    name: Test Secrets OCI
-    needs: [setup-config, build-maven, check-coverage]
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    environment: BACKEND_ENVIRONNEMENT
-    steps:
-      - name: Vérifier les secrets dans le parent
-        run: |
-          echo "Test des secrets dans le workflow parent..."
-          
-          if [ -z "${{ secrets.OCI_USERNAME }}" ]; then
-            echo "❌ OCI_USERNAME est VIDE dans le workflow parent!"
-          else
-            echo "✅ OCI_USERNAME existe (longueur: ${#OCI_USERNAME})"
-          fi
-          
-          if [ -z "${{ secrets.OCI_AUTH_TOKEN }}" ]; then
-            echo "❌ OCI_AUTH_TOKEN est VIDE dans le workflow parent!"
-          else
-            echo "✅ OCI_AUTH_TOKEN existe"
-          fi
-          
-          if [ -z "${{ secrets.OCI_TENANCY_NAMESPACE }}" ]; then
-            echo "❌ OCI_TENANCY_NAMESPACE est VIDE dans le workflow parent!"
-          else
-            echo "✅ OCI_TENANCY_NAMESPACE existe: ${{ secrets.OCI_TENANCY_NAMESPACE }}"
-          fi
-        env:
-          OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
-
-  # ============================================
-  # 5. Build Docker Image
+  # 5. Build Docker Image (simplifié)
   # ============================================
   build-docker-image:
     name: Docker Image
-    needs: [setup-config, build-maven, check-coverage, test-secrets]
+    needs: [setup-config, build-maven, check-coverage]
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/build-docker-image.yml
     with:
       image-tag: ${{ needs.setup-config.outputs.image-tag }}
       microservice-name: ${{ needs.setup-config.outputs.microservice-name }}
-    secrets:
-      OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
-      OCI_AUTH_TOKEN: ${{ secrets.OCI_AUTH_TOKEN }}
-      OCI_TENANCY_NAMESPACE: ${{ secrets.OCI_TENANCY_NAMESPACE }}
     permissions:
       contents: read
       packages: write
 
   # ============================================
-  # 6. Security Scan de l'image
+  # 6. Local Deploy (manual)
   # ============================================
-  security-scan:
-    name: Security Scan
-    needs: [setup-config, build-docker-image]
-    if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/check-conformity-image.yml
-    with:
-      image-tag: ${{ needs.setup-config.outputs.image-tag }}
-      microservice-name: ${{ needs.setup-config.outputs.microservice-name }}
-    secrets:
-      OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
-      OCI_AUTH_TOKEN: ${{ secrets.OCI_AUTH_TOKEN }}
-      OCI_TENANCY_NAMESPACE: ${{ secrets.OCI_TENANCY_NAMESPACE }}
-    permissions:
-      contents: read
-      packages: read
-      security-events: write
+  # local deploy is available as a separate workflow: .github/workflows/ci-local-minikube.yml (trigger via workflow_dispatch)
 
   # ============================================
-  # 7. Déploiement Kubernetes
-  # ============================================
-  deploy-kubernetes:
-    name: Deploy K8s
-    needs: [setup-config, build-docker-image, security-scan]
-    if: |
-      github.event_name != 'pull_request' && 
-      needs.setup-config.outputs.should-deploy == 'true'
-    uses: ./.github/workflows/deploy-kubernetes.yml
-    with:
-      environment: ${{ needs.setup-config.outputs.environment }}
-      namespace: ${{ needs.setup-config.outputs.namespace }}
-      microservice-name: ${{ needs.setup-config.outputs.microservice-name }}
-      image-tag: ${{ needs.setup-config.outputs.image-tag }}
-    secrets:
-      OCI_KUBECONFIG: ${{ secrets.OCI_KUBECONFIG }}
-      OKE_CLUSTER_ID: ${{ secrets.OKE_CLUSTER_ID }}
-      OCI_TENANCY_NAMESPACE: ${{ secrets.OCI_TENANCY_NAMESPACE }}
-      OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
-      OCI_AUTH_TOKEN: ${{ secrets.OCI_AUTH_TOKEN }}
-      MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-      MYSQL_USER: ${{ secrets.MYSQL_USER }}
-      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-      MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-
-  # ============================================
-  # 8. Résumé final
+  # 7. Résumé final
   # ============================================
   pipeline-summary:
     name: Résumé Pipeline
-    needs: [setup-config, build-maven, check-coverage, build-docker-image, security-scan, deploy-kubernetes]
+    needs: [setup-config, build-maven, check-coverage, build-docker-image]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -177,30 +98,21 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Étapes réalisées" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Build Maven
           if [[ "${{ needs.build-maven.result }}" == "success" ]]; then
             echo "- [x] Build & Tests Maven" >> $GITHUB_STEP_SUMMARY
           else
             echo "- [ ] Build & Tests Maven (FAILED)" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Check Coverage
           if [[ "${{ needs.check-coverage.result }}" == "success" ]]; then
             echo "- [x] Vérification de la couverture" >> $GITHUB_STEP_SUMMARY
           else
             echo "- [ ] Vérification de la couverture (FAILED)" >> $GITHUB_STEP_SUMMARY
           fi
-          
-          # SonarQube
-          if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.base_ref }}" == "main" ]]; then
-            if [[ "${{ needs.sonarqube-analysis.result }}" == "success" ]]; then
-              echo "- [x] Analyse SonarQube" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "- [ ] Analyse SonarQube (FAILED)" >> $GITHUB_STEP_SUMMARY
-            fi
-          fi
-          
+
           # Docker Build
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then
             if [[ "${{ needs.build-docker-image.result }}" == "success" ]]; then
@@ -208,25 +120,7 @@ jobs:
             else
               echo "- [ ] Build Docker Image (FAILED)" >> $GITHUB_STEP_SUMMARY
             fi
-            
-            # Security Scan
-            if [[ "${{ needs.security-scan.result }}" == "success" ]]; then
-              echo "- [x] Security Scan" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "- [ ] Security Scan (FAILED)" >> $GITHUB_STEP_SUMMARY
-            fi
-            
-            # Déploiement
-            if [[ "${{ needs.setup-config.outputs.should-deploy }}" == "true" ]]; then
-              if [[ "${{ needs.deploy-kubernetes.result }}" == "success" ]]; then
-                DOMAIN="https://soa-${{ needs.setup-config.outputs.microservice-name }}${{ needs.setup-config.outputs.domain-suffix }}.${{ needs.setup-config.outputs.base-domain }}"
-                echo "- [x] Déploiement Kubernetes" >> $GITHUB_STEP_SUMMARY
-                echo "" >> $GITHUB_STEP_SUMMARY
-                echo "## Application déployée" >> $GITHUB_STEP_SUMMARY
-                echo "- **URL**: [$DOMAIN]($DOMAIN)" >> $GITHUB_STEP_SUMMARY
-                echo "- **Health Check**: [$DOMAIN/actuator/health]($DOMAIN/actuator/health)" >> $GITHUB_STEP_SUMMARY
-              else
-                echo "- [ ] Déploiement Kubernetes (FAILED)" >> $GITHUB_STEP_SUMMARY
-              fi
-            fi
           fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Pipeline completed" >> $GITHUB_STEP_SUMMARY

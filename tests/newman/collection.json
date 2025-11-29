@@ -1,0 +1,38 @@
+{
+  "info": { "name": "univ-soa-simplified", "_postman_id": "local" },
+  "item": [
+    {
+      "name": "Create item",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/items",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{ \"id\": {{id}}, \"name\": \"{{name}}\", \"value\": \"{{value}}\" }" }
+      }
+    },
+    {
+      "name": "Get item",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/items/{{id}}"
+      }
+    },
+    {
+      "name": "Update item",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/items/{{id}}",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{ \"name\": \"{{name}}-updated\", \"value\": \"{{value}}-u\" }" }
+      }
+    },
+    {
+      "name": "Delete item",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/items/{{id}}"
+      }
+    }
+  ]
+}
+

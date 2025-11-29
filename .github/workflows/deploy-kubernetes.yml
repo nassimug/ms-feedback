@@ -125,24 +125,27 @@ jobs:
           OCI_USERNAME="${{ secrets.OCI_USERNAME }}"
           OCI_AUTH_TOKEN="${{ secrets.OCI_AUTH_TOKEN }}"
           
+          # Vérifier que les variables sont définies
+          if [ -z "$OCI_TENANCY_NAMESPACE" ] || [ -z "$OCI_USERNAME" ] || [ -z "$OCI_AUTH_TOKEN" ]; then
+            echo "❌ Erreur: Secrets manquants"
+            echo "OCI_TENANCY_NAMESPACE: $([ -z "$OCI_TENANCY_NAMESPACE" ] && echo 'VIDE ❌' || echo 'OK ✅')"
+            echo "OCI_USERNAME: $([ -z "$OCI_USERNAME" ] && echo 'VIDE ❌' || echo 'OK ✅')"
+            echo "OCI_AUTH_TOKEN: $([ -z "$OCI_AUTH_TOKEN" ] && echo 'VIDE ❌' || echo 'OK ✅')"
+            exit 1
+          fi
+          
           # Le username doit avoir le format: <tenancy-namespace>/<username>
           DOCKER_USERNAME="${OCI_TENANCY_NAMESPACE}/${OCI_USERNAME}"
           DOCKER_PASSWORD="$OCI_AUTH_TOKEN"
           
           echo "Registry: $DOCKER_SERVER"
-          echo "Tenancy Namespace: $OCI_TENANCY_NAMESPACE"
-          echo "Username: ${DOCKER_USERNAME%%/*}/***"
-          
-          # Vérifier que les variables sont définies
-          if [ -z "$OCI_TENANCY_NAMESPACE" ] || [ -z "$OCI_USERNAME" ] || [ -z "$OCI_AUTH_TOKEN" ]; then
-            echo "❌ Erreur: OCI_TENANCY_NAMESPACE, OCI_USERNAME ou OCI_AUTH_TOKEN manquant"
-            echo "OCI_TENANCY_NAMESPACE: $([ -z "$OCI_TENANCY_NAMESPACE" ] && echo 'VIDE' || echo 'OK')"
-            echo "OCI_USERNAME: $([ -z "$OCI_USERNAME" ] && echo 'VIDE' || echo 'OK')"
-            echo "OCI_AUTH_TOKEN: $([ -z "$OCI_AUTH_TOKEN" ] && echo 'VIDE' || echo 'OK')"
-            exit 1
-          fi
+          echo "Username format: <namespace>/<user>"
+          echo "Longueur namespace: ${#OCI_TENANCY_NAMESPACE} caractères"
+          echo "Longueur username: ${#OCI_USERNAME} caractères"
+          echo "Longueur token: ${#OCI_AUTH_TOKEN} caractères"
           
           # Test de connexion OCIR avant de créer le secret
+          echo ""
           echo "Test de connexion à OCIR..."
           if echo "$DOCKER_PASSWORD" | docker login "$DOCKER_SERVER" -u "$DOCKER_USERNAME" --password-stdin 2>&1; then
             echo "✅ Connexion OCIR réussie"
@@ -150,20 +153,21 @@ jobs:
             echo ""
             echo "❌ ÉCHEC DE CONNEXION À OCIR"
             echo ""
-            echo "Vérifications nécessaires:"
-            echo "1. OCI_USERNAME doit être UNIQUEMENT votre nom d'utilisateur (sans le namespace)"
-            echo "   Valeur actuelle de OCI_USERNAME: $OCI_USERNAME"
-            echo "   Format attendu: 'abdelmoughitboutchi4@gmail.com'"
+            echo "CAUSE PROBABLE:"
+            echo "• OCI_TENANCY_NAMESPACE incorrect dans les secrets GitHub"
+            echo "  Valeur attendue: 'axfuowvuxal7' (13 caractères, avec 'f' après 'ax')"
+            echo "  Longueur actuelle: ${#OCI_TENANCY_NAMESPACE} caractères"
             echo ""
-            echo "2. OCI_TENANCY_NAMESPACE doit être correct"
-            echo "   Valeur actuelle: $OCI_TENANCY_NAMESPACE"
-            echo "   Format attendu: 'axfuowvuxal7' (avec 'f')"
+            echo "• OCI_USERNAME doit être votre email complet"
+            echo "  Format: 'abdelmoughitboutchi4@gmail.com'"
             echo ""
-            echo "3. OCI_AUTH_TOKEN doit être valide et actif"
-            echo "   Vérifiez: Console OCI > User Settings > Auth Tokens"
+            echo "• OCI_AUTH_TOKEN doit être valide (20 caractères environ)"
+            echo "  Longueur actuelle: ${#OCI_AUTH_TOKEN} caractères"
             echo ""
-            echo "4. Permissions IAM nécessaires:"
-            echo "   Allow group <votre-groupe> to manage repos in tenancy"
+            echo "ACTION REQUISE:"
+            echo "1. Vérifiez OCI_TENANCY_NAMESPACE dans GitHub Secrets"
+            echo "2. Vérifiez que l'Auth Token est actif: Console OCI > User Settings > Auth Tokens"
+            echo "3. Assurez-vous d'avoir les permissions IAM pour OCIR"
             echo ""
             exit 1
           fi

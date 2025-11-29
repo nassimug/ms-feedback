@@ -11,17 +11,15 @@ on:
         description: "SmartDish Template"
         required: true
         type: string
-    secrets:
-      OCI_USERNAME:
-        required: true
-      OCI_AUTH_TOKEN:
-        required: true
-      OCI_TENANCY_NAMESPACE:
-        required: true
+      push:
+        description: 'Push image to GHCR (true/false)'
+        required: false
+        type: boolean
 
 env:
   OCI_REGION: eu-paris-1
   OCI_REGISTRY: cdg.ocir.io
+  GHCR_REGISTRY: ghcr.io
 
 jobs:
   build-docker:
@@ -31,10 +29,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    env:
-      OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
-      OCI_AUTH_TOKEN: ${{ secrets.OCI_AUTH_TOKEN }}
-      OCI_TENANCY_NAMESPACE: ${{ secrets.OCI_TENANCY_NAMESPACE }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -54,56 +48,6 @@ jobs:
           fi
           echo "JAR trouvé: $(ls target/*.jar)"
 
-      - name: Debug - Vérifier les secrets
-        run: |
-          echo "Vérification des secrets OCIR..."
-          
-          if [ -z "$OCI_TENANCY_NAMESPACE" ]; then
-            echo "❌ OCI_TENANCY_NAMESPACE manquant"
-            exit 1
-          fi
-          
-          if [ -z "$OCI_USERNAME" ]; then
-            echo "❌ OCI_USERNAME manquant"
-            exit 1
-          fi
-          
-          if [ -z "$OCI_AUTH_TOKEN" ]; then
-            echo "❌ OCI_AUTH_TOKEN manquant"
-            exit 1
-          fi
-          
-          echo "✅ Tous les secrets sont définis"
-          echo "Registry: ${{ env.OCI_REGISTRY }}"
-          echo "Namespace: $OCI_TENANCY_NAMESPACE"
-
-      - name: Login to Oracle Cloud Container Registry (OCIR)
-        run: |
-          echo "Connexion à OCIR..."
-          echo "Registry: ${{ env.OCI_REGISTRY }}"
-          
-          # Format OCIR username: namespace/username
-          FULL_USERNAME="${OCI_TENANCY_NAMESPACE}/${OCI_USERNAME}"
-          
-          echo "Tentative de connexion..."
-          echo "Registry: ${{ env.OCI_REGISTRY }}"
-          echo "Namespace: ${OCI_TENANCY_NAMESPACE}"
-          
-          # Connexion à OCIR
-          if echo "$OCI_AUTH_TOKEN" | docker login ${{ env.OCI_REGISTRY }} -u "$FULL_USERNAME" --password-stdin 2>&1; then
-            echo "✅ Connexion réussie à OCIR"
-          else
-            echo ""
-            echo "❌ ÉCHEC DE CONNEXION À OCIR"
-            echo ""
-            echo "Vérifiez que dans GitHub Secrets:"
-            echo "• OCI_USERNAME = abdelmoughitboutchi4@gmail.com (SANS le namespace)"
-            echo "• OCI_TENANCY_NAMESPACE = axfuowvuxal7"
-            echo "• OCI_AUTH_TOKEN = votre token valide"
-            echo ""
-            exit 1
-          fi
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -112,56 +56,43 @@ jobs:
         run: |
           # Sanitiser le nom du microservice (remplacer points par tirets, minuscules)
           MICROSERVICE_NAME_SANITIZED=$(echo "${{ inputs.microservice-name }}" | tr '.' '-' | tr '[:upper:]' '[:lower:]')
-          
-          TENANCY_NAMESPACE="$OCI_TENANCY_NAMESPACE"
-          REPO_NAME="smartdish/${MICROSERVICE_NAME_SANITIZED}"
           IMAGE_TAG="${{ inputs.image-tag }}"
-          FULL_IMAGE="${{ env.OCI_REGISTRY }}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG}"
-          
+          REPO_NAME="${{ github.repository }}"
+          FULL_IMAGE_GHCR="${{ env.GHCR_REGISTRY }}/${{ github.repository }}:${IMAGE_TAG}"
+          SHORT_NAME="univ-soa:${IMAGE_TAG}"
+
           echo "image-name=${REPO_NAME}" >> $GITHUB_OUTPUT
-          echo "image-tag=${FULL_IMAGE}" >> $GITHUB_OUTPUT
-          echo "short-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-          
-          echo "Registry: ${{ env.OCI_REGISTRY }}"
+          echo "image-tag=${FULL_IMAGE_GHCR}" >> $GITHUB_OUTPUT
+          echo "short-tag=${SHORT_NAME}" >> $GITHUB_OUTPUT
+
+          echo "Registry: GHCR"
           echo "Microservice original: ${{ inputs.microservice-name }}"
           echo "Microservice sanitized: ${MICROSERVICE_NAME_SANITIZED}"
-          echo "Tenancy: ${TENANCY_NAMESPACE}"
-          echo "Repository: ${REPO_NAME}"
           echo "Tag: ${IMAGE_TAG}"
-          echo "Image complète: ${FULL_IMAGE}"
+          echo "Image complète (ghcr): ${FULL_IMAGE_GHCR}"
 
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: ${{ steps.tags.outputs.image-tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            JAR_FILE=target/*.jar
-            JAVA_VERSION=21
-
-      - name: Vérifier que l'image a été poussée
+      - name: Build image
         run: |
-          echo "Vérification de l'image dans le registry..."
-          IMAGE="${{ steps.tags.outputs.image-tag }}"
-          
-          sleep 5
-          
-          if docker manifest inspect $IMAGE > /dev/null 2>&1; then
-            echo "Image confirmée dans le registry: $IMAGE"
-          else
-            echo "Image non visible immédiatement (peut prendre quelques secondes)"
-          fi
+          docker build -f Dockerfile -t ${{ steps.tags.outputs.short-tag }} .
+
+      - name: Push to GHCR (optional)
+        if: ${{ inputs.push == true }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image (conditional)
+        if: ${{ inputs.push == true }}
+        run: |
+          docker tag ${{ steps.tags.outputs.short-tag }} ${{ steps.tags.outputs.image-tag }}
+          docker push ${{ steps.tags.outputs.image-tag }}
 
       - name: Image Summary
         run: |
           echo "### Docker Image Built Successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Registry:** \`${{ env.REGISTRY }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Repository:** \`${{ steps.tags.outputs.image-name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag:** \`${{ steps.tags.outputs.short-tag }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image complète:** \`${{ steps.tags.outputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Short Tag:** \`${{ steps.tags.outputs.short-tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Full Tag (push target):** \`${{ steps.tags.outputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY
