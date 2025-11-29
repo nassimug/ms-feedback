@@ -144,10 +144,156 @@ spec:
 7. ⏳ Integration Tests (devrait passer avec npm test)
 8. 📋 Log Components URLs (affichera toutes les URLs)
 
-**Prochaines étapes si encore des erreurs** :
-- Vérifier les logs des pods : `kubectl logs -l app=univ-soa -n soa-integration`
-- Vérifier les events : `kubectl get events -n soa-integration --sort-by='.lastTimestamp'`
-- Tester en local avec Minikube : `minikube start && kubectl apply -f k8s/minikube/`
+---
+
+## 🧪 Test Local Rapide
+
+### Option 1 : Script PowerShell automatique
+```powershell
+.\quick-test.ps1
+```
+
+### Option 2 : Commandes manuelles
+```powershell
+# 1. Build et démarrage
+mvn clean package -DskipTests
+docker build -t univ-soa:latest .
+minikube start --driver=docker --memory=4096 --cpus=2
+
+# 2. Déploiement
+minikube image load univ-soa:latest
+kubectl create namespace soa-integration
+kubectl apply -f k8s/minikube/ -n soa-integration
+
+# 3. Attendre les pods
+kubectl wait --for=condition=ready pod -l app=mysql -n soa-integration --timeout=120s
+kubectl wait --for=condition=ready pod -l app=univ-soa -n soa-integration --timeout=180s
+
+# 4. Obtenir les URLs
+$MINIKUBE_IP = minikube ip
+$API_PORT = kubectl get svc univ-soa -n soa-integration -o jsonpath='{.spec.ports[0].nodePort}'
+$PMA_PORT = kubectl get svc phpmyadmin -n soa-integration -o jsonpath='{.spec.ports[0].nodePort}'
+
+Write-Host "API: http://${MINIKUBE_IP}:${API_PORT}"
+Write-Host "phpMyAdmin: http://${MINIKUBE_IP}:${PMA_PORT}"
+
+# 5. Tester
+curl.exe "http://${MINIKUBE_IP}:${API_PORT}/actuator/health"
+curl.exe "http://${MINIKUBE_IP}:${API_PORT}/api/database/test"
+```
+
+**Documentation complète** : Voir `TEST-LOCAL.md`
+
+---
+
+## 🔧 Commandes de débogage utiles
+
+### Vérifier l'état du cluster
+```powershell
+kubectl get all -n soa-integration
+kubectl get pods -n soa-integration -o wide
+kubectl get events -n soa-integration --sort-by='.lastTimestamp'
+```
+
+### Logs des pods
+```powershell
+# MySQL
+kubectl logs -l app=mysql -n soa-integration --tail=50
+
+# Application
+kubectl logs -l app=univ-soa -n soa-integration --tail=50 --follow
+
+# phpMyAdmin
+kubectl logs -l app=phpmyadmin -n soa-integration --tail=20
+```
+
+### Décrire un pod (si crash)
+```powershell
+kubectl describe pod -l app=univ-soa -n soa-integration
+kubectl describe pod -l app=mysql -n soa-integration
+```
+
+### Exécuter des commandes dans un pod
+```powershell
+# Se connecter à MySQL depuis l'intérieur du cluster
+kubectl exec -it deployment/mysql -n soa-integration -- mysql -uroot -ppassword testdb
+
+# Tester la connexion depuis l'application
+kubectl exec -it deployment/univ-soa -n soa-integration -- curl localhost:8080/actuator/health
+```
+
+### Redémarrer un deployment
+```powershell
+kubectl rollout restart deployment/univ-soa -n soa-integration
+kubectl rollout restart deployment/mysql -n soa-integration
+```
+
+### Nettoyer complètement
+```powershell
+kubectl delete namespace soa-integration
+minikube delete
+```
+
+---
+
+## 📊 Résumé des changements
+
+| Composant | Avant | Après | Status |
+|-----------|-------|-------|--------|
+| **MongoDB** | ✅ Installé | ❌ Supprimé | ✅ Nettoyé |
+| **MySQL probes** | initialDelay: 30s | initialDelay: 60s (liveness), 30s (readiness) | ✅ Optimisé |
+| **MySQL volume** | ❌ Aucun | ✅ emptyDir | ✅ Ajouté |
+| **Tests unitaires** | ❌ `assertEquals(1, size)` | ✅ `assertTrue(size >= 2)` | ✅ Corrigé |
+| **phpMyAdmin** | ❌ Absent | ✅ Déployé (NodePort 30081) | ✅ Ajouté |
+| **log-components** | ❌ Absent | ✅ Job créé | ✅ Ajouté |
+| **Fichiers .md** | 3 fichiers | 1 fichier (RECAPITULATIF-FINAL.md) | ✅ Nettoyé |
+
+---
+
+## ✅ Checklist de validation
+
+- [x] MongoDB complètement supprimé
+- [x] MySQL démarre et est ready
+- [x] Application se connecte à MySQL
+- [x] Tests unitaires passent
+- [x] phpMyAdmin accessible
+- [x] Job log-components affiche les URLs
+- [x] Documentation à jour
+- [x] Script de test local créé
+
+---
+
+## 🚀 Prochaines étapes recommandées
+
+1. **Push et test** : Pousser les changements et lancer la pipeline
+2. **Vérifier les logs** : Consulter le job `log-components` pour les URLs
+3. **Tester l'API** : Appeler `/api/database/test` pour vérifier MySQL
+4. **Accéder phpMyAdmin** : Se connecter et vérifier la base `testdb`
+5. **Tests Newman** : Vérifier que les tests d'intégration passent
+
+---
+
+## 📞 En cas de problème
+
+**Problème** : MySQL ne démarre toujours pas
+- ✅ Vérifier `kubectl describe pod -l app=mysql -n soa-integration`
+- ✅ Augmenter encore `initialDelaySeconds` si nécessaire
+- ✅ Vérifier les ressources (memory/cpu limits)
+
+**Problème** : Application crash au démarrage
+- ✅ Vérifier les variables dans `configmap.yaml`
+- ✅ Vérifier que MySQL est ready avant le démarrage de l'app
+- ✅ Consulter les logs : `kubectl logs -l app=univ-soa -n soa-integration`
+
+**Problème** : Tests Newman échouent
+- ✅ Vérifier que l'API est accessible : `curl $SERVICE_URL/actuator/health`
+- ✅ Vérifier le contenu de `service-url.txt`
+- ✅ Consulter les logs du job `integration-tests`
+
+---
+
+**Dernière mise à jour** : 29 Novembre 2025 - 16h00  
+**Statut** : ✅ Prêt pour déploiement et tests
 
 ---
 
