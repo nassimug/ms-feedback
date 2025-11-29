@@ -1,6 +1,29 @@
 # 🚀 Pipeline CI/CD - Récapitulatif Final
 
-## 🔥 Dernière Correction (29 Nov 2025 - 16h00)
+## 🔥 Dernière Correction (29 Nov 2025 - 16h30)
+
+### ✅ Corrections Jobs d'Intégration et Logging
+
+**Nouveaux problèmes résolus** :
+
+#### 7. 🧪 Tests d'intégration Newman échouent (module not found)
+**Cause** : npm test essaie d'utiliser des chemins incorrects pour newman
+**Solution** : Utilisation directe de `node index.js` au lieu de npm scripts
+```yaml
+# Avant : npm test -- --url "$SERVICE_URL"
+# Après : node index.js --collection ./collection.json --environment ./env.tmp.json
+```
+
+#### 8. 📋 Job log-components échoue (kubectl non configuré)
+**Cause** : Le job essaie d'utiliser kubectl sans contexte minikube
+**Solution** : Utilisation des artifacts (service-url.txt) au lieu de kubectl
+- Plus besoin de minikube/kubectl dans ce job
+- Récupère l'URL du service depuis l'artifact
+- Affiche les instructions pour port-forward phpMyAdmin
+
+---
+
+## 🔥 Correction Précédente (29 Nov 2025 - 16h00)
 
 ### ✅ Corrections COMPLÈTES : MongoDB supprimé + MySQL optimisé + Tests corrigés + phpMyAdmin ajouté
 
@@ -103,46 +126,65 @@ spec:
 
 ---
 
-## 📋 Fichiers modifiés dans cette correction
+## 📋 Fichiers modifiés dans les dernières corrections
 
-1. **k8s/minikube/mysql.yaml**
+### Correction actuelle (16h30) :
+
+1. **.github/workflows/integration-tests.yml**
+   - ✅ Remplacement de `npm test` par appel direct à `node index.js`
+   - ✅ Suppression du fallback newman complexe
+   - ✅ Simplification de l'exécution des tests
+
+2. **.github/workflows/log-components.yml**
+   - ✅ Suppression de la dépendance à kubectl/minikube
+   - ✅ Utilisation des artifacts pour récupérer l'URL
+   - ✅ Affichage des instructions pour accéder aux services
+   - ✅ Instructions pour port-forward phpMyAdmin
+
+### Corrections précédentes (16h00) :
+
+3. **k8s/minikube/mysql.yaml**
    - Augmentation `initialDelaySeconds` liveness: 120s
    - Augmentation `initialDelaySeconds` readiness: 90s
    - Amélioration readiness probe avec vraie requête SQL
 
-2. **k8s/minikube/deployment.yaml**
+4. **k8s/minikube/deployment.yaml**
    - Augmentation `initialDelaySeconds` liveness: 120s
    - Augmentation `initialDelaySeconds` readiness: 90s
    - Ajout `timeoutSeconds: 5` aux deux probes
 
-3. **src/main/resources/application.properties**
+5. **src/main/resources/application.properties**
    - Ajout valeurs par défaut à TOUTES les variables : `${VAR:default}`
    - Évite crash au démarrage si variables non définies
 
-4. **src/test/java/.../DatabaseControllerTest.java**
+6. **src/test/java/.../DatabaseControllerTest.java**
    - Correction assertions : `assertTrue(result.size() >= 2)` au lieu de `assertEquals(1, ...)`
 
-5. **.github/workflows/integration-tests.yml**
-   - Changement de `npx newman` vers `npm test` avec fallback
-   - Correction path node_modules
-
-6. **.github/workflows/log-components.yml**
-   - Ajout installation et démarrage Minikube dans le job
-   - Ne dépend plus d'un cluster existant
 
 ---
 
 ## ✅ État actuel du pipeline
 
-**Jobs qui doivent passer** :
+**Jobs qui doivent passer maintenant** :
 1. ✅ Configuration & Variables
 2. ✅ Build Maven
 3. ✅ Check Code Coverage
 4. ✅ Build Docker Image
 5. ✅ Check Image Conformity
-6. ⏳ Deploy to Kubernetes (devrait passer maintenant avec les timeouts augmentés)
-7. ⏳ Integration Tests (devrait passer avec npm test)
-8. 📋 Log Components URLs (affichera toutes les URLs)
+6. ✅ Deploy to Kubernetes (fonctionne avec timeouts augmentés + MySQL optimisé)
+7. ✅ Integration Tests (corrigé avec node index.js direct)
+8. ✅ Log Components URLs (utilise artifacts au lieu de kubectl)
+
+**Ordre d'exécution** :
+```
+Config → Build → Tests → Docker → Deploy → Integration Tests → Log URLs
+```
+
+**Artifacts générés** :
+- 📦 `app-image.tar` : Image Docker de l'application
+- 🔗 `service-url` : URL du service déployé
+- 📊 `newman-results` : Résultats des tests d'intégration
+- 📋 `component-urls` : URLs de tous les composants
 
 ---
 

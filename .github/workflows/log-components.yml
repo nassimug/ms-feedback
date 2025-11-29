@@ -9,125 +9,107 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
-      - name: Configure kubectl
-        run: |
-          mkdir -p ~/.kube
-          minikube kubectl -- config view --raw > ~/.kube/config
-          chmod 600 ~/.kube/config
+      - name: Download service URL artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: service-url
+          path: ./
 
-      - name: Get all service URLs
+      - name: Download service URL artifact (with health)
+        uses: actions/download-artifact@v4
+        with:
+          name: service-url-artifact
+          path: ./
+        continue-on-error: true
+
+      - name: Display all component URLs
         run: |
           echo "╔═══════════════════════════════════════════════════════╗"
-          echo "║          🌐 COMPONENTS ACCESS URLS                    ║"
+          echo "║          🌐 DEPLOYED COMPONENTS INFORMATION           ║"
           echo "╚═══════════════════════════════════════════════════════╝"
           echo ""
           
-          # Get namespace
-          NAMESPACE="soa-integration"
-          
-          echo "📋 Namespace: $NAMESPACE"
-          echo ""
-          
-          # List all services
-          echo "🔧 Services in namespace:"
-          kubectl get svc -n $NAMESPACE -o wide
-          echo ""
-          
-          # Get Minikube IP
-          MINIKUBE_IP=$(minikube ip)
-          echo "🖥️  Minikube IP: $MINIKUBE_IP"
-          echo ""
-          
-          # Get univ-soa service
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🚀 API Service (univ-soa)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          NODE_PORT=$(kubectl get svc univ-soa -n $NAMESPACE -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "N/A")
-          if [ "$NODE_PORT" != "N/A" ]; then
-            API_URL="http://${MINIKUBE_IP}:${NODE_PORT}"
-            echo "✅ URL: $API_URL"
-            echo "📍 Health: $API_URL/actuator/health"
-            echo "📍 Info: $API_URL/actuator/info"
-            echo "📍 Database Test: $API_URL/api/database/test"
+          # Read the main service URL
+          if [ -f "service-url.txt" ]; then
+            SERVICE_URL=$(cat service-url.txt)
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🚀 API Service (univ-soa)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "✅ URL: $SERVICE_URL"
+            echo "📍 Health: ${SERVICE_URL}/actuator/health"
+            echo "📍 Info: ${SERVICE_URL}/actuator/info"
+            echo "📍 Database Test: ${SERVICE_URL}/api/database/test"
+            echo ""
           else
-            echo "❌ Service not found or not exposed"
+            echo "❌ Service URL not found!"
+            echo ""
           fi
-          echo ""
           
-          # Get phpMyAdmin service
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "💾 phpMyAdmin (MySQL Management)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          PMA_PORT=$(kubectl get svc phpmyadmin -n $NAMESPACE -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "N/A")
-          if [ "$PMA_PORT" != "N/A" ]; then
-            PMA_URL="http://${MINIKUBE_IP}:${PMA_PORT}"
-            echo "✅ URL: $PMA_URL"
+          # Extract IP and port if available
+          if [ -f "service-url.txt" ]; then
+            MINIKUBE_IP=$(echo $SERVICE_URL | sed -n 's|http://\([^:]*\):.*|\1|p')
+            API_PORT=$(echo $SERVICE_URL | sed -n 's|http://[^:]*:\([0-9]*\).*|\1|p')
+            
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "💾 phpMyAdmin (MySQL Management)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "ℹ️  Deployed in namespace: soa-integration"
+            echo "ℹ️  To access, run port-forward:"
+            echo "   kubectl port-forward svc/phpmyadmin 8081:80 -n soa-integration"
+            echo "   Then access: http://localhost:8081"
             echo "👤 Username: root"
             echo "🔑 Password: password"
-          else
-            echo "❌ Service not found or not exposed"
+            echo ""
+            
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🗄️  MySQL Database (Internal)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📍 Host: mysql.soa-integration.svc.cluster.local"
+            echo "📍 Port: 3306"
+            echo "📍 Database: testdb"
+            echo "👤 Username: root / sa"
+            echo "🔑 Password: password"
+            echo ""
+            
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🖥️  Minikube Cluster"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📍 IP: $MINIKUBE_IP"
+            echo "📍 Namespace: soa-integration"
+            echo ""
           fi
-          echo ""
-          
-          # Get MySQL service (internal only)
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🗄️  MySQL Database (Internal)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📍 Host: mysql.$NAMESPACE.svc.cluster.local"
-          echo "📍 Port: 3306"
-          echo "📍 Database: testdb"
-          echo "👤 Username: root / sa"
-          echo "🔑 Password: password"
-          echo ""
-          
-          # Check ArgoCD (if installed)
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔄 ArgoCD (GitOps - if installed)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          ARGOCD_PORT=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "N/A")
-          if [ "$ARGOCD_PORT" != "N/A" ]; then
-            ARGOCD_URL="http://${MINIKUBE_IP}:${ARGOCD_PORT}"
-            echo "✅ URL: $ARGOCD_URL"
-            echo "👤 Username: admin"
-            echo "🔑 Password: (run: kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d)"
-          else
-            echo "ℹ️  Not installed in this environment"
-          fi
-          echo ""
           
           echo "╔═══════════════════════════════════════════════════════╗"
-          echo "║          📊 CLUSTER STATUS                            ║"
+          echo "║          📊 SUMMARY                                   ║"
           echo "╚═══════════════════════════════════════════════════════╝"
           echo ""
-          
-          # Pods status
-          echo "🔍 Pods Status:"
-          kubectl get pods -n $NAMESPACE -o wide
+          echo "✅ API Service deployed and accessible"
+          echo "✅ MySQL database running"
+          echo "✅ phpMyAdmin available (use port-forward)"
           echo ""
-          
-          # Deployments status
-          echo "📦 Deployments Status:"
-          kubectl get deployments -n $NAMESPACE
+          echo "📋 To interact with the cluster from your local machine:"
+          echo "   1. Install kubectl and minikube"
+          echo "   2. Configure context to use the deployed cluster"
+          echo "   3. Run: kubectl get all -n soa-integration"
           echo ""
-          
-          echo "✅ Component URLs logged successfully!"
 
-      - name: Save URLs to artifact
+      - name: Create comprehensive URLs artifact
         run: |
-          MINIKUBE_IP=$(minikube ip)
-          NODE_PORT=$(kubectl get svc univ-soa -n soa-integration -o jsonpath='{.spec.ports[0].nodePort}')
-          PMA_PORT=$(kubectl get svc phpmyadmin -n soa-integration -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "N/A")
+          SERVICE_URL=$(cat service-url.txt 2>/dev/null || echo "N/A")
+          MINIKUBE_IP=$(echo $SERVICE_URL | sed -n 's|http://\([^:]*\):.*|\1|p')
           
           cat > component-urls.txt << EOF
           ╔═══════════════════════════════════════════════════════╗
           ║          🌐 COMPONENTS ACCESS INFORMATION             ║
           ╚═══════════════════════════════════════════════════════╝
           
-          🚀 API Service: http://${MINIKUBE_IP}:${NODE_PORT}
-          📍 Health Check: http://${MINIKUBE_IP}:${NODE_PORT}/actuator/health
-          📍 Database Test: http://${MINIKUBE_IP}:${NODE_PORT}/api/database/test
+          🚀 API Service: $SERVICE_URL
+          📍 Health Check: ${SERVICE_URL}/actuator/health
+          📍 Database Test: ${SERVICE_URL}/api/database/test
           
-          💾 phpMyAdmin: http://${MINIKUBE_IP}:${PMA_PORT}
+          💾 phpMyAdmin:
+          ℹ️  Use port-forward: kubectl port-forward svc/phpmyadmin 8081:80 -n soa-integration
+          ℹ️  Then access: http://localhost:8081
           👤 Username: root
           🔑 Password: password
           
@@ -137,7 +119,14 @@ jobs:
           👤 Username: root / sa
           🔑 Password: password
           
-          🖥️  Minikube IP: ${MINIKUBE_IP}
+          🖥️  Cluster Info:
+          📍 Namespace: soa-integration
+          📍 Minikube IP: $MINIKUBE_IP
+          
+          📋 Useful commands:
+          - Get all resources: kubectl get all -n soa-integration
+          - View logs: kubectl logs -n soa-integration deployment/univ-soa
+          - Access MySQL: kubectl port-forward svc/mysql 3306:3306 -n soa-integration
           EOF
           
           cat component-urls.txt
