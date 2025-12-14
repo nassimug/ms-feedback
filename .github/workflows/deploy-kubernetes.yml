@@ -96,12 +96,13 @@ jobs:
       - name: Deploy application to Minikube
         run: |
           echo "🚀 Deploying manifests..."
+          kubectl apply -f k8s/minikube/persistance.yaml -n ${{ env.NAMESPACE }}
           kubectl apply -f k8s/minikube/ -n ${{ env.NAMESPACE }}
           
           echo "📊 Current deployments:"
           kubectl get deployments -n ${{ env.NAMESPACE }}
           
-          echo "✅ Manifests applied (using image: ms-feedback:latest)"
+          echo "✅ Manifests applied (ms-persistance + ms-feedback)"
 
       - name: Wait for pods to be created
         run: |
