@@ -20,40 +20,46 @@ jobs:
 
       - name: Run tests and generate JaCoCo report
         run: |
+          set -e
           echo "📊 Running tests and generating coverage report..."
           mvn -B clean test jacoco:report
 
       - name: Extract and display exact coverage
+        shell: bash
         run: |
+          set -e
           echo "🔍 Extracting coverage from report..."
-          if [ -f target/site/jacoco/jacoco.xml ]; then
-            python3 - << 'PY'
-import xml.etree.ElementTree as ET
-xml_path = 'target/site/jacoco/jacoco.xml'
-root = ET.parse(xml_path).getroot()
-# Aggregate LINE counters
-covered_total = 0
-missed_total = 0
-for counter in root.findall('.//counter'):
-    if counter.get('type') == 'LINE':
-        covered_total += int(counter.get('covered', '0'))
-        missed_total += int(counter.get('missed', '0'))
-
-total = covered_total + missed_total
-pct = (covered_total * 100.0 / total) if total > 0 else 0.0
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("📈 JACOCO COVERAGE SUMMARY")
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print(f"✅ Line Coverage: {pct:.2f}%")
-print("📋 Required Minimum: 60%")
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-if pct < 60.0:
-    import sys
-    print(f"❌ Coverage {pct:.2f}% is below minimum 60%")
-    sys.exit(1)
-PY
+          REPORT_XML="target/site/jacoco/jacoco.xml"
+          if [ -f "$REPORT_XML" ]; then
+            # Aggregate LINE counters from JaCoCo XML without Python
+            LINE_ROWS=$(grep '<counter type="LINE"' "$REPORT_XML" || true)
+            if [ -z "$LINE_ROWS" ]; then
+              echo "❌ No LINE counters found in $REPORT_XML"
+              exit 1
+            fi
+            COVERED=$(echo "$LINE_ROWS" | grep -o 'covered="[0-9]\+"' | grep -o '[0-9]\+' | paste -sd+ - | bc)
+            MISSED=$(echo "$LINE_ROWS" | grep -o 'missed="[0-9]\+"'  | grep -o '[0-9]\+' | paste -sd+ - | bc)
+            TOTAL=$(echo "$COVERED + $MISSED" | bc)
+            if [ "$TOTAL" -eq 0 ]; then
+              PCT="0"
+            else
+              PCT=$(echo "scale=2; ($COVERED * 100) / $TOTAL" | bc)
+            fi
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📈 JACOCO COVERAGE SUMMARY"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "✅ Line Coverage: ${PCT}%"
+            echo "📋 Required Minimum: 60%"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            # Compare with threshold
+            BELOW=$(echo "$PCT < 60" | bc)
+            if [ "$BELOW" -eq 1 ]; then
+              echo "❌ Coverage ${PCT}% is below minimum 60%"
+              exit 1
+            fi
+            echo "✅ Coverage ${PCT}% meets minimum requirement"
           else
-            echo "❌ Coverage XML report not found: target/site/jacoco/jacoco.xml"
+            echo "❌ Coverage XML report not found: $REPORT_XML"
             exit 1
           fi
 

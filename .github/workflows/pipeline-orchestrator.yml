@@ -60,4 +60,3 @@ jobs:
     needs: deploy-kubernetes
     if: always()
     uses: ./.github/workflows/log-components.yml
-
