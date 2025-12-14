@@ -6,19 +6,15 @@
   },
   "item": [
     {
-      "name": "Health Check",
+      "name": "Actuator Health",
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Response contains health message\", function () {",
-              "    pm.expect(pm.response.text()).to.include(\"healthy\");",
-              "});"
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Health status is UP\", function () { pm.expect(jsonData.status).to.eql('UP'); });"
             ],
             "type": "text/javascript"
           }
@@ -27,11 +23,7 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/health",
-          "host": ["{{baseUrl}}"],
-          "path": ["health"]
-        }
+        "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator","health"] }
       }
     },
     {
@@ -128,36 +120,6 @@
           "raw": "{{baseUrl}}/",
           "host": ["{{baseUrl}}"],
           "path": [""]
-        }
-      }
-    },
-    {
-      "name": "Actuator Health",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Health status is UP\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.status).to.equal('UP');",
-              "});"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/actuator/health",
-          "host": ["{{baseUrl}}"],
-          "path": ["actuator", "health"]
         }
       }
     },
