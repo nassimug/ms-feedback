@@ -1,0 +1,216 @@
+name: Log Components URLs
+
+on:
+  workflow_call:
+
+jobs:
+  log-urls:
+    name: Log All Component URLs
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Download service URL artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: service-url
+          path: ./
+
+
+      - name: Display all component URLs
+        run: |
+          echo "╔═══════════════════════════════════════════════════════╗"
+          echo "║          🌐 SERVICES MICROSERVICE MS-FEEDBACK         ║"
+          echo "╚═══════════════════════════════════════════════════════╝"
+          echo ""
+          
+          # Read the main service URL
+          if [ -f "service-url.txt" ]; then
+            SERVICE_URL=$(cat service-url.txt)
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "ℹ️  DÉPLOIEMENT CI/CD (GitHub Actions)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🤖 URL interne (Minikube): $SERVICE_URL"
+            echo "⚠️  Cette URL n'est PAS accessible depuis votre navigateur"
+            echo "📌 Usage: Tests d'intégration automatiques uniquement"
+            echo ""
+          else
+            echo "❌ Service URL not found!"
+            echo ""
+          fi
+          
+          echo "╔═══════════════════════════════════════════════════════╗"
+          echo "║       🌐 ACCÈS AUX SERVICES MS-FEEDBACK              ║"
+          echo "╚═══════════════════════════════════════════════════════╝"
+          echo ""
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ OPTION 1 : Docker Compose Local (RECOMMANDÉ)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "📋 Depuis votre PC (après docker-compose up) :"
+          echo "   1. Attendre 30 secondes"
+          echo ""
+          echo "🌐 URLs accessibles dans votre navigateur :"
+          echo "   ✅ API ms-feedback :    http://localhost:8091"
+          echo "   📍 Swagger UI :         http://localhost:8091/swagger-ui.html"
+          echo "   📍 API Docs :           http://localhost:8091/v3/api-docs"
+          echo "   📍 Health :             http://localhost:8091/actuator/health"
+          echo "   📍 Endpoints :          http://localhost:8091/actuator"
+          echo "   💾 phpMyAdmin :         http://localhost:8081"
+          echo "   📦 MinIO Console :      http://localhost:9001"
+          echo ""
+          echo "🔑 Identifiants :"
+          echo "   MySQL/phpMyAdmin : root / password"
+          echo "   MinIO :            minioadmin / minioadmin"
+          echo ""
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ OPTION 2 : Kubernetes Local (Docker Desktop)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "📋 Prérequis :"
+          echo "   - Docker Desktop avec Kubernetes activé"
+          echo ""
+          echo "📋 URL de service :"
+          echo "   Namespace: ms-feedback"
+          echo "   Service: ms-feedback"
+          echo "   Port: 8091"
+          echo ""
+          if [ -f "service-url.txt" ]; then
+            SERVICE_URL=$(cat service-url.txt)
+            echo "   Accès via: $SERVICE_URL"
+          fi
+          echo ""
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📚 API Endpoints Disponibles"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Gestion des Feedbacks :"
+          echo "  POST   /api/feedbacks                     - Créer un feedback"
+          echo "  GET    /api/feedbacks                     - Lister tous les feedbacks"
+          echo "  GET    /api/feedbacks/{id}                - Obtenir un feedback"
+          echo "  GET    /api/feedbacks/user/{userId}       - Feedbacks d'un utilisateur"
+          echo "  GET    /api/feedbacks/recette/{recetteId} - Feedbacks d'une recette"
+          echo "  GET    /api/feedbacks/recette/{recetteId}/average - Note moyenne"
+          echo "  PUT    /api/feedbacks/{id}                - Mettre à jour un feedback"
+          echo "  DELETE /api/feedbacks/{id}                - Supprimer un feedback"
+          echo ""
+          echo "Santé de l'Application :"
+          echo "  GET    /actuator/health                   - Health check"
+          echo "  GET    /swagger-ui.html                   - Documentation Swagger"
+          echo ""
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📚 Documentation Disponible"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "📖 Consultez le README.md pour :"
+          echo "   • Architecture détaillée"
+          echo "   • Configuration de l'environnement"
+          echo "   • Exemples de requêtes API"
+          echo "   • Validation des données"
+          echo ""
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "⚡ Variables d'Environnement"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Configuration Serveur :"
+          echo "  SERVER_PORT: 8091"
+          echo ""
+          echo "Configuration MySQL :"
+          echo "  MYSQL_HOST: mysql"
+          echo "  MYSQL_PORT: 3306"
+          echo "  MYSQL_DATABASE: testdb"
+          echo "  MYSQL_USERNAME: root"
+          echo "  MYSQL_PASSWORD: password"
+          echo ""
+          echo "Services Externes :"
+          echo "  PERSISTANCE_SERVICE_URL: http://ms-persistance:8090"
+          echo "  RECOMMENDATION_SERVICE_URL: http://ms-recommendation:8092"
+          echo ""
+          
+          echo "╔═══════════════════════════════════════════════════════╗"
+          echo "║                 ✅ RÉSUMÉ                             ║"
+          echo "╚═══════════════════════════════════════════════════════╝"
+          echo ""
+          echo "✅ ms-feedback déployé avec succès"
+          echo "✅ Port d'écoute: 8091"
+          echo "✅ Dépendances: MySQL (port 3306), MinIO (port 9001)"
+          echo "ℹ️  Pour déploiement local: docker-compose up"
+          echo ""
+
+      - name: Create comprehensive URLs artifact
+        run: |
+          SERVICE_URL=$(cat service-url.txt 2>/dev/null || echo "N/A")
+          
+          cat > component-urls.txt << 'EOF'
+          ╔═══════════════════════════════════════════════════════╗
+          ║       🌐 ACCÈS AUX SERVICES MS-FEEDBACK              ║
+          ╚═══════════════════════════════════════════════════════╝
+          
+          ⚠️  IMPORTANT : Les URLs Minikube du CI/CD ne sont PAS accessibles
+          depuis votre navigateur. Voici comment accéder réellement :
+          
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          ✅ OPTION 1 : Docker Compose Local (RECOMMANDÉ)
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          
+          1. Ouvrir PowerShell dans le dossier du projet
+          2. Exécuter : docker-compose up
+          3. Attendre 30 secondes
+          
+          🌐 URLs accessibles :
+             🚀 API ms-feedback :    http://localhost:8091
+             📍 Swagger UI :         http://localhost:8091/swagger-ui.html
+             📍 Health :             http://localhost:8091/actuator/health
+             💾 phpMyAdmin (MySQL) : http://localhost:8081
+             📦 MinIO Console :      http://localhost:9001
+          
+          🔑 Identifiants :
+             MySQL/phpMyAdmin : root / password
+             MinIO :            minioadmin / minioadmin
+          
+          🛑 Arrêter : docker-compose down
+          
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          ✅ OPTION 2 : Kubernetes Local (Docker Desktop)
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          
+          Prérequis : Docker Desktop avec Kubernetes activé
+          Namespace : ms-feedback
+          Service : ms-feedback
+          Port : 8091
+          
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          📚 Documentation
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          
+          Consultez le README.md pour :
+          • API Endpoints complète
+          • Architecture détaillée
+          • Configuration de l'environnement
+          • Validation des données
+          
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          ℹ️  URL CI/CD (Tests Automatiques Uniquement)
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          
+          Minikube Internal (GitHub Actions):
+          EOF
+          
+          echo "  $SERVICE_URL" >> component-urls.txt
+          echo "" >> component-urls.txt
+          echo "⚠️  Cette URL n'est pas accessible depuis votre PC." >> component-urls.txt
+          echo "   Elle est utilisée uniquement pour les tests Newman automatiques." >> component-urls.txt
+          
+          cat component-urls.txt
+
+      - name: Upload URLs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: component-urls
+          path: component-urls.txt
+          retention-days: 7
+

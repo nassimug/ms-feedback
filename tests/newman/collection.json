@@ -1,0 +1,295 @@
+{
+  "info": {
+    "name": "RecipeYouLove API Tests",
+    "_postman_id": "local",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response contains health message\", function () {",
+              "    pm.expect(pm.response.text()).to.include(\"healthy\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "API Status",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has JSON body\", function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "pm.test(\"Response contains application name\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('applicationName');",
+              "    pm.expect(jsonData).to.have.property('version');",
+              "    pm.expect(jsonData).to.have.property('status');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "status"]
+        }
+      }
+    },
+    {
+      "name": "Database Connection Test",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Database connection is successful\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('mysql');",
+              "    pm.expect(jsonData.mysql).to.include('successful');",
+              "    pm.expect(jsonData.status).to.equal('ready');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/database/test",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "database", "test"]
+        }
+      }
+    },
+    {
+      "name": "Home Page",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response contains API running message\", function () {",
+              "    pm.expect(pm.response.text()).to.include('API is running');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": ["{{baseUrl}}"],
+          "path": [""]
+        }
+      }
+    },
+    {
+      "name": "Actuator Health",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Health status is UP\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.status).to.equal('UP');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["actuator", "health"]
+        }
+      }
+    },
+    {
+      "name": "Create Feedback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.test(\"Response has an ID\", function () {",
+              "  pm.expect(body).to.have.property('id');",
+              "});",
+              "pm.environment.set('createdId', body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"recetteId\": 5,\n  \"evaluation\": 5,\n  \"commentaire\": \"Excellente recette !\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/feedbacks", "host": ["{{baseUrl}}"], "path": ["api","feedbacks"] }
+      }
+    },
+    {
+      "name": "Get Created Feedback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const body = pm.response.json();",
+              "pm.test(\"IDs match\", function () {",
+              "  pm.expect(body.id).to.eql(parseInt(pm.environment.get('createdId')));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/feedbacks/{{createdId}}", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","{{createdId}}"] }
+      }
+    },
+    {
+      "name": "Update Feedback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const body = pm.response.json();",
+              "pm.test(\"Evaluation updated\", function () {",
+              "  pm.expect(body.evaluation).to.eql(4);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"evaluation\": 4,\n  \"commentaire\": \"Très bon, mais peut être amélioré\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/feedbacks/{{createdId}}", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","{{createdId}}"] }
+      }
+    },
+    {
+      "name": "List All Feedbacks",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+            "const arr = pm.response.json();",
+            "pm.test(\"Array returned\", function () { pm.expect(Array.isArray(arr)).to.be.true; });"
+          ] }
+        }
+      ],
+      "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/feedbacks", "host": ["{{baseUrl}}"], "path": ["api","feedbacks"] } }
+    },
+    {
+      "name": "Get Feedbacks by utilisateur",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+        "const arr = pm.response.json();",
+        "pm.test(\"Array returned\", function () { pm.expect(Array.isArray(arr)).to.be.true; });"
+      ] } } ],
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/feedbacks/utilisateur/1", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","utilisateur","1"] } }
+    },
+    {
+      "name": "Get Feedbacks by recette",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+        "const arr = pm.response.json();",
+        "pm.test(\"Array returned\", function () { pm.expect(Array.isArray(arr)).to.be.true; });"
+      ] } } ],
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/feedbacks/recette/5", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","recette","5"] } }
+    },
+    {
+      "name": "Average Rating by recette",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+        "const res = pm.response.json();",
+        "pm.test(\"Contains averageRating\", function () { pm.expect(res).to.have.property('averageRating'); });"
+      ] } } ],
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/feedbacks/recette/5/average", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","recette","5","average"] } }
+    },
+    {
+      "name": "Delete Feedback",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 204\", function () { pm.response.to.have.status(204); });"
+      ] } } ],
+      "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/feedbacks/{{createdId}}", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","{{createdId}}"] } }
+    }
+  ]
+}

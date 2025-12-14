@@ -1,0 +1,59 @@
+name: Check Coverage
+
+on:
+  workflow_call:
+
+jobs:
+  check-coverage:
+    name: Check Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run tests and generate JaCoCo report
+        run: |
+          echo "📊 Running tests and generating coverage report..."
+          mvn -B clean test jacoco:report
+
+      - name: Extract and display exact coverage
+        run: |
+          echo "🔍 Extracting coverage from report..."
+          if [ -f target/site/jacoco/index.html ]; then
+            LINE_COV=$(grep -A2 ">Lines<" target/site/jacoco/index.html | grep -oP 'percent">\K[^<]+' | head -1 | sed 's/%//')
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📈 JACOCO COVERAGE SUMMARY"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "✅ Line Coverage: ${LINE_COV}%"
+            echo "📋 Required Minimum: 60%"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            
+            if [ -z "$LINE_COV" ]; then
+              echo "❌ Could not parse coverage percentage"
+              exit 1
+            fi
+            
+            if [ $(echo "$LINE_COV < 60" | bc) -eq 1 ]; then
+              echo "❌ Coverage ${LINE_COV}% is below minimum 60%"
+              exit 1
+            else
+              echo "✅ Coverage ${LINE_COV}% meets minimum requirement"
+            fi
+          else
+            echo "❌ Coverage report not found: target/site/jacoco/index.html"
+            exit 1
+          fi
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: target/site/jacoco/
+          retention-days: 7
