@@ -26,28 +26,34 @@ jobs:
       - name: Extract and display exact coverage
         run: |
           echo "🔍 Extracting coverage from report..."
-          if [ -f target/site/jacoco/index.html ]; then
-            LINE_COV=$(grep -A2 ">Lines<" target/site/jacoco/index.html | grep -oP 'percent">\K[^<]+' | head -1 | sed 's/%//')
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "📈 JACOCO COVERAGE SUMMARY"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "✅ Line Coverage: ${LINE_COV}%"
-            echo "📋 Required Minimum: 60%"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            
-            if [ -z "$LINE_COV" ]; then
-              echo "❌ Could not parse coverage percentage"
-              exit 1
-            fi
-            
-            if [ $(echo "$LINE_COV < 60" | bc) -eq 1 ]; then
-              echo "❌ Coverage ${LINE_COV}% is below minimum 60%"
-              exit 1
-            else
-              echo "✅ Coverage ${LINE_COV}% meets minimum requirement"
-            fi
+          if [ -f target/site/jacoco/jacoco.xml ]; then
+            python3 - << 'PY'
+import xml.etree.ElementTree as ET
+xml_path = 'target/site/jacoco/jacoco.xml'
+root = ET.parse(xml_path).getroot()
+# Aggregate LINE counters
+covered_total = 0
+missed_total = 0
+for counter in root.findall('.//counter'):
+    if counter.get('type') == 'LINE':
+        covered_total += int(counter.get('covered', '0'))
+        missed_total += int(counter.get('missed', '0'))
+
+total = covered_total + missed_total
+pct = (covered_total * 100.0 / total) if total > 0 else 0.0
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("📈 JACOCO COVERAGE SUMMARY")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print(f"✅ Line Coverage: {pct:.2f}%")
+print("📋 Required Minimum: 60%")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+if pct < 60.0:
+    import sys
+    print(f"❌ Coverage {pct:.2f}% is below minimum 60%")
+    sys.exit(1)
+PY
           else
-            echo "❌ Coverage report not found: target/site/jacoco/index.html"
+            echo "❌ Coverage XML report not found: target/site/jacoco/jacoco.xml"
             exit 1
           fi
 

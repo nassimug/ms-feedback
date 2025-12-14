@@ -112,12 +112,11 @@ nbdist/
 # ========================================
 # ENVIRONMENT & SECURITY - PRIORITÉ ABSOLUE
 # ========================================
-# Variables d'environnement sensibles
+# Variables d'environnement sensibles (toujours ignorées)
 .env
 .env.local
 .env.*.local
 *.env
-!.env
 
 # Fichiers de configuration avec credentials
 application-*.properties
