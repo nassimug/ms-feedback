@@ -209,77 +209,10 @@ jobs:
           npm install
           echo "Newman installed"
 
-      - name: Seed data in MS-Persistance
-        run: |
-          echo "🌱 Seeding data in ms-persistance..."
-          MINIKUBE_IP=$(minikube ip)
-          PERSISTANCE_URL="http://${MINIKUBE_IP}:30090"
-          echo "🔗 Using ms-persistance: $PERSISTANCE_URL"
-          
-          # Wait for ms-persistance to be ready
-          echo "⏳ Waiting for ms-persistance to be accessible..."
-          for i in {1..10}; do
-            if curl -sf --connect-timeout 3 "$PERSISTANCE_URL/api/persistance/utilisateurs" >/dev/null 2>&1; then
-              echo "✅ MS-Persistance is accessible"
-              break
-            fi
-            echo "Waiting ($i/10)..."
-            sleep 3
-          done
-          
-          # Create user #1
-          echo "👤 Creating user #1..."
-          USER_RESPONSE=$(curl -s -X POST "$PERSISTANCE_URL/api/persistance/utilisateurs" \
-            -H 'Content-Type: application/json' \
-            -d '{
-              "nom": "TestUser",
-              "prenom": "Integration",
-              "email": "test.user@example.com",
-              "motDePasse": "password123",
-              "role": "USER"
-            }')
-          
-          echo "User creation response: $USER_RESPONSE"
-          
-          # Verify user #1 exists
-          echo "🔍 Verifying user #1..."
-          curl -sf "$PERSISTANCE_URL/api/persistance/utilisateurs/1" || {
-            echo "❌ User #1 not found after creation"
-            exit 1
-          }
-          echo "✅ User #1 verified"
-          
-          # Create 5 recipes to ensure we have recipe #5
-          echo "🍽️ Creating recipes (1-5)..."
-          for i in {1..5}; do
-            echo "Creating recipe #$i..."
-            curl -s -X POST "$PERSISTANCE_URL/api/persistance/recettes" \
-              -H 'Content-Type: application/json' \
-              -d "{
-                \"titre\": \"Recette de test #$i\",
-                \"description\": \"Recette créée pour les tests automatisés\",
-                \"tempsTotal\": 30,
-                \"difficulte\": \"FACILE\",
-                \"kcal\": 250
-              }" >/dev/null
-          done
-          
-          # Verify recipe #5 exists
-          echo "🔍 Verifying recipe #5..."
-          curl -sf "$PERSISTANCE_URL/api/persistance/recettes/5" || {
-            echo "❌ Recipe #5 not found after creation"
-            echo "Available recipes:"
-            curl -s "$PERSISTANCE_URL/api/persistance/recettes" | jq '.'
-            exit 1
-          }
-          echo "✅ Recipe #5 verified"
-          
-          echo "✅ Data seeding completed successfully!"
-
       - name: Configure Newman environment
         working-directory: ./tests/newman
         run: |
-          echo "Configuring Newman with service URL..."
+          echo "📝 Configuring Newman with service URLs..."
           SERVICE_URL="${{ steps.endpoint.outputs.service_url }}"
           
           # Compute MS-Persistance URL (NodePort 30090)
@@ -288,12 +221,31 @@ jobs:
           echo "🔗 ms-feedback URL: $SERVICE_URL"
           echo "🔗 ms-persistance URL: $PERSISTANCE_URL"
           
+          # Wait for MS-Persistance to be accessible
+          echo "⏳ Waiting for ms-persistance to be ready..."
+          for i in {1..20}; do
+            if curl -sf --connect-timeout 3 "$PERSISTANCE_URL/api/persistance/utilisateurs" >/dev/null 2>&1; then
+              echo "✅ MS-Persistance is accessible!"
+              break
+            fi
+            echo "Waiting for ms-persistance ($i/20)..."
+            sleep 3
+          done
+          
+          # Final check
+          if ! curl -sf --connect-timeout 5 "$PERSISTANCE_URL/api/persistance/utilisateurs" >/dev/null 2>&1; then
+            echo "❌ MS-Persistance is not accessible after 60s"
+            kubectl get pods -n ${{ env.NAMESPACE }} -l app=ms-persistance
+            kubectl logs -l app=ms-persistance -n ${{ env.NAMESPACE }} --tail=50 || true
+            exit 1
+          fi
+          
           jq --arg url "$SERVICE_URL" --arg purl "$PERSISTANCE_URL" \
             '(.values[] | select(.key == "baseUrl") | .value) = $url |
              (.values[] | select(.key == "persistanceUrl") | .value) = $purl' \
             env.json > env.tmp.json
           
-          echo "Environment configuration:"
+          echo "📋 Environment configuration:"
           cat env.tmp.json | jq '.'
           echo "Environment configured with URLs"
 
