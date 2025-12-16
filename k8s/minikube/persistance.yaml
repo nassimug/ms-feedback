@@ -64,6 +64,27 @@ spec:
           value: "health,info,metrics"
         - name: ACTUATOR_HEALTH_DETAILS
           value: "always"
+        # MinIO Configuration (using default values - MinIO is optional for ms-feedback)
+        - name: MINIO_URL
+          value: "http://localhost:9000"
+        - name: MINIO_ENDPOINT
+          value: "http://localhost:9000"
+        - name: MINIO_ROOT_USER
+          value: "minioadmin"
+        - name: MINIO_ROOT_PASSWORD
+          value: "minioadmin"
+        - name: MINIO_ACCESS_KEY
+          value: "minioadmin"
+        - name: MINIO_SECRET_KEY
+          value: "minioadmin"
+        - name: MINIO_BUCKET_NAME
+          value: "recettes"
+        - name: MINIO_BUCKET
+          value: "recettes"
+        - name: MINIO_HOST
+          value: "localhost"
+        - name: MINIO_PORT
+          value: "9000"
         readinessProbe:
           httpGet:
             path: /actuator/health
