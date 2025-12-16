@@ -36,12 +36,16 @@ spec:
           name: http
         env:
         - name: SPRING_PROFILES_ACTIVE
-          value: "dev"
-        - name: LOG_LEVEL_JDBC
+          value: "prod"
+        - name: LOGGING_LEVEL_ROOT
+          value: "INFO"
+        - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_JDBC
           value: "DEBUG"
-        - name: LOG_LEVEL_HIBERNATE_SQL
+        - name: LOGGING_LEVEL_ORG_HIBERNATE_SQL
           value: "DEBUG"
-        - name: LOG_LEVEL_HIBERNATE_TYPE
+        - name: LOGGING_LEVEL_ORG_HIBERNATE_TYPE
+          value: "TRACE"
+        - name: LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL_BASICBINDER
           value: "TRACE"
         - name: SPRING_DATASOURCE_URL
           value: "jdbc:mysql://mysql:3306/feedback_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
@@ -49,6 +53,10 @@ spec:
           value: "root"
         - name: SPRING_DATASOURCE_PASSWORD
           value: "root"
+        - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+          value: "com.mysql.cj.jdbc.Driver"
+        - name: SPRING_JPA_DATABASE_PLATFORM
+          value: "org.hibernate.dialect.MySQL8Dialect"
         - name: SPRING_JPA_HIBERNATE_DDL_AUTO
           value: "update"
         - name: SPRING_JPA_SHOW_SQL
@@ -57,9 +65,9 @@ spec:
           value: "true"
         - name: SERVER_PORT
           value: "8090"
-        - name: ACTUATOR_ENDPOINTS
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
           value: "health,info,metrics"
-        - name: ACTUATOR_HEALTH_DETAILS
+        - name: MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS
           value: "always"
         readinessProbe:
           httpGet:
