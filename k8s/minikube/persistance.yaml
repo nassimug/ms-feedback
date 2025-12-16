@@ -39,6 +39,10 @@ spec:
           value: "dev"
         - name: LOG_LEVEL_JDBC
           value: "DEBUG"
+        - name: LOG_LEVEL_HIBERNATE_SQL
+          value: "DEBUG"
+        - name: LOG_LEVEL_HIBERNATE_TYPE
+          value: "TRACE"
         - name: SPRING_DATASOURCE_URL
           value: "jdbc:mysql://mysql:3306/feedback_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
         - name: SPRING_DATASOURCE_USERNAME
@@ -49,6 +53,14 @@ spec:
           value: "update"
         - name: SPRING_JPA_SHOW_SQL
           value: "true"
+        - name: SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL
+          value: "true"
+        - name: SERVER_PORT
+          value: "8090"
+        - name: ACTUATOR_ENDPOINTS
+          value: "health,info,metrics"
+        - name: ACTUATOR_HEALTH_DETAILS
+          value: "always"
         readinessProbe:
           httpGet:
             path: /actuator/health
