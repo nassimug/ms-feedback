@@ -77,7 +77,10 @@ mvn spring-boot:run
 | Service | URL |
 |---------|-----|
 | **Swagger UI** | http://localhost:8091/swagger-ui.html |
-| **Health Check** | http://localhost:8091/api/feedbacks/health |
+| **API Docs** | http://localhost:8091/v3/api-docs |
+| **Health Check** | http://localhost:8091/actuator/health |
+| **phpMyAdmin** | http://localhost:8081 |
+| **MinIO Console** | http://localhost:9001 |
 
 ## 📡 API Endpoints
 

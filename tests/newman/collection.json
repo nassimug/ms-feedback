@@ -1,0 +1,320 @@
+{
+  "info": {
+    "name": "RecipeYouLove API Tests",
+    "_postman_id": "local",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Setup - Create User in MS-Persistance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"User created or already exists\", function () {",
+              "  pm.expect([201, 409]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  console.log('User created with ID:', body.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"TestUser\",\n  \"prenom\": \"Integration\",\n  \"email\": \"test.user@example.com\",\n  \"motDePasse\": \"password123\",\n  \"role\": \"USER\"\n}"
+        },
+        "url": {
+          "raw": "{{persistanceUrl}}/api/persistance/utilisateurs",
+          "host": ["{{persistanceUrl}}"],
+          "path": ["api", "persistance", "utilisateurs"]
+        }
+      }
+    },
+    {
+      "name": "Setup - Create Recipe 1 in MS-Persistance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Recipe created\", function () {",
+              "  pm.expect([201, 409]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titre\": \"Recette de test 1\",\n  \"description\": \"Première recette pour tests\",\n  \"tempsTotal\": 30,\n  \"difficulte\": \"FACILE\",\n  \"kcal\": 250\n}"
+        },
+        "url": {
+          "raw": "{{persistanceUrl}}/api/persistance/recettes",
+          "host": ["{{persistanceUrl}}"],
+          "path": ["api", "persistance", "recettes"]
+        }
+      }
+    },
+    {
+      "name": "Setup - Create Recipe 2 in MS-Persistance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Recipe created\", function () {",
+              "  pm.expect([201, 409]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titre\": \"Recette de test 2\",\n  \"description\": \"Deuxième recette pour tests\",\n  \"tempsTotal\": 45,\n  \"difficulte\": \"MOYEN\",\n  \"kcal\": 350\n}"
+        },
+        "url": {
+          "raw": "{{persistanceUrl}}/api/persistance/recettes",
+          "host": ["{{persistanceUrl}}"],
+          "path": ["api", "persistance", "recettes"]
+        }
+      }
+    },
+    {
+      "name": "Setup - Create Recipe 3 in MS-Persistance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Recipe created\", function () {",
+              "  pm.expect([201, 409]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titre\": \"Recette de test 3\",\n  \"description\": \"Troisième recette pour tests\",\n  \"tempsTotal\": 60,\n  \"difficulte\": \"DIFFICILE\",\n  \"kcal\": 450\n}"
+        },
+        "url": {
+          "raw": "{{persistanceUrl}}/api/persistance/recettes",
+          "host": ["{{persistanceUrl}}"],
+          "path": ["api", "persistance", "recettes"]
+        }
+      }
+    },
+    {
+      "name": "Setup - Create Recipe 4 in MS-Persistance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Recipe created\", function () {",
+              "  pm.expect([201, 409]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titre\": \"Recette de test 4\",\n  \"description\": \"Quatrième recette pour tests\",\n  \"tempsTotal\": 25,\n  \"difficulte\": \"FACILE\",\n  \"kcal\": 200\n}"
+        },
+        "url": {
+          "raw": "{{persistanceUrl}}/api/persistance/recettes",
+          "host": ["{{persistanceUrl}}"],
+          "path": ["api", "persistance", "recettes"]
+        }
+      }
+    },
+    {
+      "name": "Setup - Create Recipe 5 in MS-Persistance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Recipe 5 created successfully\", function () {",
+              "  pm.expect([201, 409]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  console.log('Recipe 5 created with ID:', body.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titre\": \"Recette de test 5\",\n  \"description\": \"Cinquième recette pour tests - utilisée dans les feedbacks\",\n  \"tempsTotal\": 40,\n  \"difficulte\": \"MOYEN\",\n  \"kcal\": 300\n}"
+        },
+        "url": {
+          "raw": "{{persistanceUrl}}/api/persistance/recettes",
+          "host": ["{{persistanceUrl}}"],
+          "path": ["api", "persistance", "recettes"]
+        }
+      }
+    },
+    {
+      "name": "Actuator Health",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Health status is UP\", function () { pm.expect(jsonData.status).to.eql('UP'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator","health"] }
+      }
+    },
+    {
+      "name": "Create Feedback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.test(\"Response has an ID\", function () {",
+              "  pm.expect(body).to.have.property('id');",
+              "});",
+              "pm.environment.set('createdId', body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"recetteId\": 5,\n  \"evaluation\": 5,\n  \"commentaire\": \"Excellente recette !\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/feedbacks", "host": ["{{baseUrl}}"], "path": ["api","feedbacks"] }
+      }
+    },
+    {
+      "name": "Get Created Feedback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const body = pm.response.json();",
+              "pm.test(\"IDs match\", function () {",
+              "  pm.expect(body.id).to.eql(parseInt(pm.environment.get('createdId')));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/feedbacks/{{createdId}}", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","{{createdId}}"] } }
+    },
+    {
+      "name": "Update Feedback",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+          "const body = pm.response.json();",
+          "pm.test(\"Evaluation updated\", function () { pm.expect(body.evaluation).to.eql(4); });"
+        ] } }
+      ],
+      "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"evaluation\": 4,\n  \"commentaire\": \"Très bon, mais peut être amélioré\"\n}" }, "url": { "raw": "{{baseUrl}}/api/feedbacks/{{createdId}}", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","{{createdId}}"] } }
+    },
+    {
+      "name": "List All Feedbacks",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+          "const arr = pm.response.json();",
+          "pm.test(\"Array returned\", function () { pm.expect(Array.isArray(arr)).to.be.true; });"
+        ] } }
+      ],
+      "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/feedbacks", "host": ["{{baseUrl}}"], "path": ["api","feedbacks"] } }
+    },
+    {
+      "name": "Get Feedbacks by utilisateur",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+        "const arr = pm.response.json();",
+        "pm.test(\"Array returned\", function () { pm.expect(Array.isArray(arr)).to.be.true; });"
+      ] } } ],
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/feedbacks/utilisateur/1", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","utilisateur","1"] } }
+    },
+    {
+      "name": "Get Feedbacks by recette",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+        "const arr = pm.response.json();",
+        "pm.test(\"Array returned\", function () { pm.expect(Array.isArray(arr)).to.be.true; });"
+      ] } } ],
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/feedbacks/recette/5", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","recette","5"] } }
+    },
+    {
+      "name": "Average Rating by recette",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+        "const res = pm.response.json();",
+        "pm.test(\"Contains averageRating\", function () { pm.expect(res).to.have.property('averageRating'); });"
+      ] } } ],
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/feedbacks/recette/5/average", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","recette","5","average"] } }
+    },
+    {
+      "name": "Delete Feedback",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 204\", function () { pm.response.to.have.status(204); });"
+      ] } } ],
+      "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/feedbacks/{{createdId}}", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","{{createdId}}"] } }
+    }
+  ]
+}
