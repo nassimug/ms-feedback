@@ -34,134 +34,134 @@ jobs:
 
       - name: Setup Minikube (manual installation)
         run: |
-          echo "📦 Installing Minikube..."
+          echo "Installing Minikube..."
           curl -LO https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-amd64
           sudo install minikube-linux-amd64 /usr/local/bin/minikube
           rm minikube-linux-amd64
           
-          echo "🚀 Starting Minikube..."
+          echo "Starting Minikube..."
           minikube start --driver=docker --memory=4096 --cpus=2 --kubernetes-version=v1.28.0
           
-          echo "⏳ Waiting for Minikube to be ready..."
+          echo "Waiting for Minikube to be ready..."
           minikube status
           
-          echo "✅ Minikube started successfully"
+          echo "Minikube started successfully"
 
       - name: Configure kubectl
         run: |
-          echo "🔧 Configuring kubectl..."
+          echo "Configuring kubectl..."
           kubectl config use-context minikube
           kubectl config view
           
-          echo "✅ kubectl configured"
+          echo "kubectl configured"
 
       - name: Verify Minikube
         run: |
-          echo "🔍 Cluster info:"
+          echo "Cluster info:"
           kubectl cluster-info
           
-          echo "📊 Nodes:"
+          echo "Nodes:"
           kubectl get nodes
           
-          echo "🐳 Docker env:"
+          echo "Docker env:"
           minikube docker-env
 
       - name: Load Docker image into Minikube
         run: |
-          echo "📥 Loading Docker image into Minikube..."
+          echo "Loading Docker image into Minikube..."
           minikube image load app-image.tar
           
-          echo "🏷️ Tagging image inside Minikube..."
+          echo "Tagging image inside Minikube..."
           minikube image tag ${{ env.IMAGE_NAME }}:${{ inputs.image-tag }} ${{ env.IMAGE_NAME }}:latest
           
-          echo "📋 Images inside Minikube:"
-          minikube image ls | grep ${{ env.IMAGE_NAME }} || echo "⚠️  Image not found yet, will retry..."
+          echo "Images inside Minikube:"
+          minikube image ls | grep ${{ env.IMAGE_NAME }} || echo "Image not found yet, will retry..."
           
-          echo "✅ Image loaded and tagged successfully"
+          echo "Image loaded and tagged successfully"
 
       - name: Pull and Load MS-Persistance image
         run: |
-          echo "📥 Pulling MS-Persistance image directly into Minikube..."
+          echo "Pulling MS-Persistance image directly into Minikube..."
           eval $(minikube -p minikube docker-env)
           docker pull abdboutchichi/ms-persistance:latest
-          echo "🔍 Verifying MS-Persistance image in Minikube..."
-          docker images | grep ms-persistance || { echo "❌ ms-persistance image not found"; exit 1; }
-          echo "✅ MS-Persistance image successfully loaded into Minikube"
+          echo "Verifying MS-Persistance image in Minikube..."
+          docker images | grep ms-persistance || { echo "ms-persistance image not found"; exit 1; }
+          echo "MS-Persistance image successfully loaded into Minikube"
 
       - name: Create namespace
         run: |
           kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
-          echo "✅ Namespace created/verified"
+          echo "Namespace created/verified"
 
       - name: Deploy application to Minikube
         run: |
-          echo "🚀 Deploying manifests..."
+          echo "Deploying manifests..."
           kubectl apply -f k8s/minikube/persistance.yaml -n ${{ env.NAMESPACE }}
           kubectl apply -f k8s/minikube/ -n ${{ env.NAMESPACE }}
           
-          echo "📊 Current deployments:"
+          echo "Current deployments:"
           kubectl get deployments -n ${{ env.NAMESPACE }}
           
-          echo "✅ Manifests applied (ms-persistance + ms-feedback)"
+          echo "Manifests applied (ms-persistance + ms-feedback)"
 
       - name: Wait for pods to be created
         run: |
-          echo "⏳ Waiting 15 seconds for pods to be created..."
+          echo "Waiting 15 seconds for pods to be created..."
           sleep 15
           
-          echo "📊 Current state:"
+          echo "Current state:"
           kubectl get all -n ${{ env.NAMESPACE }}
 
       - name: Wait for MySQL to be ready
         run: |
-          echo "⏳ Waiting for MySQL to be ready (max 120s)..."
+          echo "Waiting for MySQL to be ready (max 120s)..."
           kubectl wait --for=condition=ready pod -l app=mysql -n ${{ env.NAMESPACE }} --timeout=120s || {
-            echo "❌ MySQL not ready!"
+            echo "MySQL not ready!"
             kubectl get pods -n ${{ env.NAMESPACE }} -l app=mysql
             kubectl describe pod -l app=mysql -n ${{ env.NAMESPACE }}
             kubectl logs -l app=mysql -n ${{ env.NAMESPACE }} --tail=50 || true
             exit 1
           }
-          echo "✅ MySQL is ready!"
+          echo "MySQL is ready!"
 
       - name: Deploy phpMyAdmin
         run: |
-          echo "🐬 Deploying phpMyAdmin..."
+          echo "Deploying phpMyAdmin..."
           kubectl apply -f k8s/minikube/phpmyadmin.yaml -n ${{ env.NAMESPACE }}
           
-          echo "⏳ Waiting for phpMyAdmin to be ready..."
+          echo "Waiting for phpMyAdmin to be ready..."
           kubectl wait --for=condition=ready pod -l app=phpmyadmin -n ${{ env.NAMESPACE }} --timeout=60s || {
-            echo "⚠️ phpMyAdmin not ready, but continuing..."
+            echo "phpMyAdmin not ready, but continuing..."
             kubectl get pods -n ${{ env.NAMESPACE }} -l app=phpmyadmin
           }
-          echo "✅ phpMyAdmin deployed!"
+          echo "phpMyAdmin deployed!"
 
       - name: Debug pods before rollout
         if: always()
         run: |
-          echo "🔍 Current pods status:"
+          echo "Current pods status:"
           kubectl get pods -n ${{ env.NAMESPACE }} -o wide
           
           echo ""
-          echo "🔍 ms-feedback pods details:"
+          echo "ms-feedback pods details:"
           kubectl describe pods -l app=ms-feedback -n ${{ env.NAMESPACE }} || echo "No ms-feedback pods yet"
           
           echo ""
-          echo "🔍 Recent events:"
+          echo "Recent events:"
           kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp' --field-selector type!=Normal | tail -20 || echo "No error events"
 
       - name: Wait for deployment
         run: |
-          echo "⏳ Waiting for deployment rollout..."
+          echo "Waiting for deployment rollout..."
           kubectl rollout status deployment/ms-feedback -n ${{ env.NAMESPACE }} --timeout=300s || {
-            echo "❌ Rollout timeout! Gathering debug info..."
+            echo "Rollout timeout! Gathering debug info..."
             kubectl get pods -n ${{ env.NAMESPACE }} -o wide
             kubectl describe pods -n ${{ env.NAMESPACE }}
             kubectl logs -l app=ms-feedback -n ${{ env.NAMESPACE }} --tail=50 || true
             exit 1
           }
           
-          echo "✅ Deployment successful"
+          echo "Deployment successful"
           kubectl get pods -n ${{ env.NAMESPACE }} -o wide
 
       - name: Get service endpoint
@@ -179,13 +179,12 @@ jobs:
 
       - name: Test service health
         run: |
-          echo "🏥 Testing service health..."
+          echo "Testing service health..."
           SERVICE_URL="${{ steps.endpoint.outputs.service_url }}"
           
-          # Attendre que le service soit vraiment prêt
           for i in {1..12}; do
             if curl -f --connect-timeout 5 "$SERVICE_URL/actuator/health" 2>/dev/null; then
-              echo "✅ Service is healthy!"
+              echo "Service is healthy!"
               break
             fi
             echo "⏳ Waiting for service to be fully ready ($i/12)..."
@@ -196,24 +195,91 @@ jobs:
           curl -f "$SERVICE_URL/actuator/health" || \
           curl -f "$SERVICE_URL/health" || \
           curl -f "$SERVICE_URL/" || {
-            echo "❌ Health check failed"
+            echo "Health check failed"
             kubectl logs -l app=ms-feedback -n ${{ env.NAMESPACE }} --tail=50
             exit 1
           }
           
-          echo "✅ Service is healthy and ready for tests"
+          echo "Service is healthy and ready for tests"
 
       - name: Install Newman for integration tests
         working-directory: ./tests/newman
         run: |
-          echo "📦 Installing Newman dependencies..."
+          echo "Installing Newman dependencies..."
           npm install
-          echo "✅ Newman installed"
+          echo "Newman installed"
+
+      - name: Seed data in MS-Persistance
+        run: |
+          echo "🌱 Seeding data in ms-persistance..."
+          MINIKUBE_IP=$(minikube ip)
+          PERSISTANCE_URL="http://${MINIKUBE_IP}:30090"
+          echo "🔗 Using ms-persistance: $PERSISTANCE_URL"
+          
+          # Wait for ms-persistance to be ready
+          echo "⏳ Waiting for ms-persistance to be accessible..."
+          for i in {1..10}; do
+            if curl -sf --connect-timeout 3 "$PERSISTANCE_URL/api/persistance/utilisateurs" >/dev/null 2>&1; then
+              echo "✅ MS-Persistance is accessible"
+              break
+            fi
+            echo "Waiting ($i/10)..."
+            sleep 3
+          done
+          
+          # Create user #1
+          echo "👤 Creating user #1..."
+          USER_RESPONSE=$(curl -s -X POST "$PERSISTANCE_URL/api/persistance/utilisateurs" \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "nom": "TestUser",
+              "prenom": "Integration",
+              "email": "test.user@example.com",
+              "motDePasse": "password123",
+              "role": "USER"
+            }')
+          
+          echo "User creation response: $USER_RESPONSE"
+          
+          # Verify user #1 exists
+          echo "🔍 Verifying user #1..."
+          curl -sf "$PERSISTANCE_URL/api/persistance/utilisateurs/1" || {
+            echo "❌ User #1 not found after creation"
+            exit 1
+          }
+          echo "✅ User #1 verified"
+          
+          # Create 5 recipes to ensure we have recipe #5
+          echo "🍽️ Creating recipes (1-5)..."
+          for i in {1..5}; do
+            echo "Creating recipe #$i..."
+            curl -s -X POST "$PERSISTANCE_URL/api/persistance/recettes" \
+              -H 'Content-Type: application/json' \
+              -d "{
+                \"titre\": \"Recette de test #$i\",
+                \"description\": \"Recette créée pour les tests automatisés\",
+                \"tempsTotal\": 30,
+                \"difficulte\": \"FACILE\",
+                \"kcal\": 250
+              }" >/dev/null
+          done
+          
+          # Verify recipe #5 exists
+          echo "🔍 Verifying recipe #5..."
+          curl -sf "$PERSISTANCE_URL/api/persistance/recettes/5" || {
+            echo "❌ Recipe #5 not found after creation"
+            echo "Available recipes:"
+            curl -s "$PERSISTANCE_URL/api/persistance/recettes" | jq '.'
+            exit 1
+          }
+          echo "✅ Recipe #5 verified"
+          
+          echo "✅ Data seeding completed successfully!"
 
       - name: Configure Newman environment
         working-directory: ./tests/newman
         run: |
-          echo "📝 Configuring Newman with service URL..."
+          echo "Configuring Newman with service URL..."
           SERVICE_URL="${{ steps.endpoint.outputs.service_url }}"
           
           # Compute MS-Persistance URL (NodePort 30090)
@@ -227,15 +293,15 @@ jobs:
              (.values[] | select(.key == "persistanceUrl") | .value) = $purl' \
             env.json > env.tmp.json
           
-          echo "📋 Environment configuration:"
+          echo "Environment configuration:"
           cat env.tmp.json | jq '.'
-          echo "✅ Environment configured with URLs"
+          echo "Environment configured with URLs"
 
       - name: Run Newman integration tests
         working-directory: ./tests/newman
         run: |
-          echo "🚀 Starting Newman integration tests..."
-          echo "🎯 Target: ${{ steps.endpoint.outputs.service_url }}"
+          echo "Starting Newman integration tests..."
+          echo "Target: ${{ steps.endpoint.outputs.service_url }}"
           
           mkdir -p newman-results
           
@@ -246,18 +312,18 @@ jobs:
             --reporter-json-export ./newman-results/newman-report.json \
             --timeout-request 30000 \
             --bail || {
-              echo "❌ Newman tests failed!"
+              echo "Newman tests failed!"
               echo ""
-              echo "📊 Service status:"
+              echo "Service status:"
               curl -v "${{ steps.endpoint.outputs.service_url }}/actuator/health" || true
               echo ""
-              echo "📋 Pod logs:"
+              echo "Pod logs:"
               kubectl logs -l app=ms-feedback -n ${{ env.NAMESPACE }} --tail=100
               exit 1
             }
           
           echo ""
-          echo "✅ All Newman tests passed successfully!"
+          echo "All Newman tests passed successfully!"
 
       - name: Upload Newman results
         if: always()
@@ -278,38 +344,3 @@ jobs:
           path: service-url.txt
           retention-days: 1
 
-      - name: Seed data in MS-Persistance (user + recipe)
-        run: |
-          echo "🌱 Seeding data in ms-persistance..."
-          MINIKUBE_IP=$(minikube ip)
-          PERSISTANCE_URL="http://${MINIKUBE_IP}:30090"
-          echo "🔗 Using ms-persistance: $PERSISTANCE_URL"
-
-          # Create user if not exists (ID=1)
-          echo "👤 Ensuring user #1 exists"
-          if ! curl -sf "$PERSISTANCE_URL/api/persistance/utilisateurs/1" >/dev/null; then
-            echo "➡️ Creating user #1"
-            curl -sf -X POST "$PERSISTANCE_URL/api/persistance/utilisateurs" \
-              -H 'Content-Type: application/json' \
-              -d '{"id":1, "nom":"Test", "prenom":"User", "email":"user1@example.com"}' || {
-                echo "❌ Failed to create user #1"; exit 1; }
-          else
-            echo "✅ User #1 already exists"
-          fi
-
-          # Create recipe if not exists (ID=5)
-          echo "🍽️ Ensuring recipe #5 exists"
-          if ! curl -sf "$PERSISTANCE_URL/api/persistance/recettes/5" >/dev/null; then
-            echo "➡️ Creating recipe #5"
-            curl -sf -X POST "$PERSISTANCE_URL/api/persistance/recettes" \
-              -H 'Content-Type: application/json' \
-              -d '{"id":5, "titre":"Recette test", "description":"Recette de démonstration", "categorie":"TEST"}' || {
-                echo "❌ Failed to create recipe #5"; exit 1; }
-          else
-            echo "✅ Recipe #5 already exists"
-          fi
-
-          # Verify both exist
-          curl -sf "$PERSISTANCE_URL/api/persistance/utilisateurs/1" >/dev/null || { echo "❌ User #1 not found after creation"; exit 1; }
-          curl -sf "$PERSISTANCE_URL/api/persistance/recettes/5"     >/dev/null || { echo "❌ Recipe #5 not found after creation"; exit 1; }
-          echo "✅ Data seeding completed"
