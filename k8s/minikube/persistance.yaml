@@ -28,6 +28,19 @@ spec:
           done
           echo "MySQL is ready!"
           sleep 5
+      - name: wait-for-minio
+        image: busybox:1.35
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for MinIO to be ready..."
+          until nc -z minio 9000; do
+            echo "MinIO is not ready yet, waiting..."
+            sleep 2
+          done
+          echo "MinIO is ready!"
+          sleep 3
       containers:
       - name: ms-persistance
         image: abdboutchichi/ms-persistance:latest
@@ -64,11 +77,11 @@ spec:
           value: "health,info,metrics"
         - name: ACTUATOR_HEALTH_DETAILS
           value: "always"
-        # MinIO Configuration (using default values - MinIO is optional for ms-feedback)
+        # MinIO Configuration
         - name: MINIO_URL
-          value: "http://localhost:9000"
+          value: "http://minio:9000"
         - name: MINIO_ENDPOINT
-          value: "http://localhost:9000"
+          value: "http://minio:9000"
         - name: MINIO_ROOT_USER
           value: "minioadmin"
         - name: MINIO_ROOT_PASSWORD
@@ -82,7 +95,7 @@ spec:
         - name: MINIO_BUCKET
           value: "recettes"
         - name: MINIO_HOST
-          value: "localhost"
+          value: "minio"
         - name: MINIO_PORT
           value: "9000"
         readinessProbe:

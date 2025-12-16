@@ -95,14 +95,20 @@ jobs:
 
       - name: Deploy application to Minikube
         run: |
-          echo "Deploying manifests..."
+          echo "🚀 Deploying infrastructure (MySQL + MinIO)..."
+          kubectl apply -f k8s/minikube/mysql.yaml -n ${{ env.NAMESPACE }}
           kubectl apply -f k8s/minikube/persistance.yaml -n ${{ env.NAMESPACE }}
-          kubectl apply -f k8s/minikube/ -n ${{ env.NAMESPACE }}
+          kubectl apply -f k8s/minikube/minio.yaml -n ${{ env.NAMESPACE }}
           
-          echo "Current deployments:"
+          echo "🚀 Deploying applications (ms-persistance + ms-feedback)..."
+          kubectl apply -f k8s/minikube/deployment.yaml -n ${{ env.NAMESPACE }}
+          kubectl apply -f k8s/minikube/service.yaml -n ${{ env.NAMESPACE }}
+          kubectl apply -f k8s/minikube/configmap.yaml -n ${{ env.NAMESPACE }} || true
+          
+          echo "📊 Current deployments:"
           kubectl get deployments -n ${{ env.NAMESPACE }}
           
-          echo "Manifests applied (ms-persistance + ms-feedback)"
+          echo "✅ Manifests applied (MySQL + MinIO + ms-persistance + ms-feedback)"
 
       - name: Wait for pods to be created
         run: |
@@ -123,6 +129,18 @@ jobs:
             exit 1
           }
           echo "✅ MySQL is ready!"
+
+      - name: Wait for MinIO to be ready
+        run: |
+          echo "⏳ Waiting for MinIO to be ready (max 90s)..."
+          kubectl wait --for=condition=ready pod -l app=minio -n ${{ env.NAMESPACE }} --timeout=90s || {
+            echo "❌ MinIO not ready!"
+            kubectl get pods -n ${{ env.NAMESPACE }} -l app=minio -o wide
+            kubectl describe pod -l app=minio -n ${{ env.NAMESPACE }}
+            kubectl logs -l app=minio -n ${{ env.NAMESPACE }} --tail=50 || true
+            exit 1
+          }
+          echo "✅ MinIO is ready!"
 
       - name: Wait for MS-Persistance to be ready
         run: |
