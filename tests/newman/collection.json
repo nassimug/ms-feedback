@@ -58,7 +58,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"titre\": \"Recette de test 1\",\n  \"description\": \"Première recette pour tests\",\n  \"tempsTotal\": 30,\n  \"difficulte\": \"FACILE\",\n  \"kcal\": 250,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 10\n    }\n  ]\n}"
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"titre\": \"Recette de test 1\",\n  \"description\": \"Première recette pour tests\",\n  \"tempsTotal\": 30,\n  \"difficulte\": \"FACILE\",\n  \"kcal\": 250,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 10\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{persistanceUrl}}/api/persistance/recettes",
@@ -87,7 +87,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"titre\": \"Recette de test 2\",\n  \"description\": \"Deuxième recette pour tests\",\n  \"tempsTotal\": 45,\n  \"difficulte\": \"MOYEN\",\n  \"kcal\": 350,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 15\n    }\n  ]\n}"
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"titre\": \"Recette de test 2\",\n  \"description\": \"Deuxième recette pour tests\",\n  \"tempsTotal\": 45,\n  \"difficulte\": \"MOYEN\",\n  \"kcal\": 350,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 15\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{persistanceUrl}}/api/persistance/recettes",
@@ -116,7 +116,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"titre\": \"Recette de test 3\",\n  \"description\": \"Troisième recette pour tests\",\n  \"tempsTotal\": 60,\n  \"difficulte\": \"DIFFICILE\",\n  \"kcal\": 450,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 20\n    }\n  ]\n}"
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"titre\": \"Recette de test 3\",\n  \"description\": \"Troisième recette pour tests\",\n  \"tempsTotal\": 60,\n  \"difficulte\": \"DIFFICILE\",\n  \"kcal\": 450,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 20\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{persistanceUrl}}/api/persistance/recettes",
@@ -145,7 +145,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"titre\": \"Recette de test 4\",\n  \"description\": \"Quatrième recette pour tests\",\n  \"tempsTotal\": 25,\n  \"difficulte\": \"FACILE\",\n  \"kcal\": 200,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 8\n    }\n  ]\n}"
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"titre\": \"Recette de test 4\",\n  \"description\": \"Quatrième recette pour tests\",\n  \"tempsTotal\": 25,\n  \"difficulte\": \"FACILE\",\n  \"kcal\": 200,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 8\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{persistanceUrl}}/api/persistance/recettes",
@@ -178,7 +178,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"titre\": \"Recette de test 5\",\n  \"description\": \"Cinquième recette pour tests - utilisée dans les feedbacks\",\n  \"tempsTotal\": 40,\n  \"difficulte\": \"MOYEN\",\n  \"kcal\": 300,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 12\n    }\n  ]\n}"
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"titre\": \"Recette de test 5\",\n  \"description\": \"Cinquième recette pour tests - utilisée dans les feedbacks\",\n  \"tempsTotal\": 40,\n  \"difficulte\": \"MOYEN\",\n  \"kcal\": 300,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 12\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{persistanceUrl}}/api/persistance/recettes",
