@@ -118,6 +118,9 @@ nbdist/
 .env.*.local
 *.env
 
+# Exception: template sans secrets
+!.env.example
+
 # Fichiers de configuration avec credentials
 application-*.properties
 !application.properties
