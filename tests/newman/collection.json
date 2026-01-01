@@ -62,7 +62,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"utilisateurId\": 1,\n  \"titre\": \"Recette de test 1\",\n  \"description\": \"Première recette pour tests\",\n  \"tempsTotal\": 30,\n  \"difficulte\": \"FACILE\",\n  \"kcal\": 250,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 10\n    }\n  ]\n}"
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"titre\": \"Recette de test 1\",\n  \"description\": \"Première recette pour tests\",\n  \"tempsTotal\": 30,\n  \"difficulte\": \"FACILE\",\n  \"kcal\": 250,\n  \"ingredients\": [\n    {\n      \"nomAliment\": \"Farine\",\n      \"quantite\": 200,\n      \"unite\": \"GRAMME\"\n    }\n  ],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 10\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{persistanceUrl}}/api/persistance/recettes",
@@ -95,7 +95,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"utilisateurId\": 1,\n  \"titre\": \"Recette de test 2\",\n  \"description\": \"Deuxième recette pour tests\",\n  \"tempsTotal\": 45,\n  \"difficulte\": \"MOYEN\",\n  \"kcal\": 350,\n  \"ingredients\": [],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 15\n    }\n  ]\n}"
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"titre\": \"Recette de test 2\",\n  \"description\": \"Deuxième recette pour tests\",\n  \"tempsTotal\": 45,\n  \"difficulte\": \"MOYEN\",\n  \"kcal\": 350,\n  \"ingredients\": [\n    {\n      \"nomAliment\": \"Sucre\",\n      \"quantite\": 100,\n      \"unite\": \"GRAMME\"\n    }\n  ],\n  \"etapes\": [\n    {\n      \"ordre\": 1,\n      \"texte\": \"Préparer les ingrédients\",\n      \"temps\": 15\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{persistanceUrl}}/api/persistance/recettes",
