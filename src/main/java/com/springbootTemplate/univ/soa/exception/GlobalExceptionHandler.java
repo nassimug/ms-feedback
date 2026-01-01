@@ -54,18 +54,18 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Gestion des exceptions génériques
+     * Gestion des exceptions IllegalArgumentException (validation métier, conflits, etc.)
      */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex) {
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
-        response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        response.put("error", "Erreur interne du serveur");
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", ex.getMessage());
         response.put("message", ex.getMessage());
 
-        log.error("Erreur interne: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        log.warn("Erreur de validation métier: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     /**
@@ -79,8 +79,23 @@ public class GlobalExceptionHandler {
         response.put("error", "Service temporairement indisponible");
         response.put("message", ex.getMessage());
 
-        log.error("Erreur runtime: {}", ex.getMessage(), ex);
+        log.error("Erreur runtime: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+    }
+
+    /**
+     * Gestion des exceptions génériques
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        response.put("error", "Erreur interne du serveur");
+        response.put("message", ex.getMessage());
+
+        log.error("Erreur interne: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
 }

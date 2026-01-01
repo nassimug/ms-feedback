@@ -310,6 +310,38 @@
       "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/feedbacks/recette/5/average", "host": ["{{baseUrl}}"], "path": ["api","feedbacks","recette","5","average"] } }
     },
     {
+      "name": "Duplicate Feedback (409 Conflict)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 400 or 409 or 503\", function () {",
+              "  pm.expect([400, 409, 503]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 409 || pm.response.code === 400) {",
+              "  const body = pm.response.json();",
+              "  pm.test(\"Contains error message about duplicate\", function () {",
+              "    const errorMsg = body.error || body.message || '';",
+              "    pm.expect(errorMsg.toLowerCase()).to.include('déjà');",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"utilisateurId\": 1,\n  \"recetteId\": 5,\n  \"evaluation\": 3,\n  \"commentaire\": \"Tentative de création d'un deuxième feedback\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/feedbacks", "host": ["{{baseUrl}}"], "path": ["api","feedbacks"] }
+      }
+    },
+    {
       "name": "Delete Feedback",
       "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
         "pm.test(\"Status code is 204\", function () { pm.response.to.have.status(204); });"
