@@ -44,9 +44,21 @@ public class PersistanceClient {
             log.info("Feedback créé avec succès - ID: {}", response.getBody().getId());
             return response.getBody();
 
+        } catch (HttpClientErrorException.Conflict e) {
+            log.warn("Conflit lors de la création du feedback: feedback déjà existant");
+            throw e; // Propager l'exception 409 pour gestion au niveau service
+        } catch (HttpClientErrorException.NotFound e) {
+            log.error("Ressource non trouvée lors de la création du feedback");
+            throw new RuntimeException("Ressource non trouvée: " + e.getStatusCode(), e);
+        } catch (HttpClientErrorException.BadRequest e) {
+            log.error("Requête invalide lors de la création du feedback: {}", e.getResponseBodyAsString());
+            throw new RuntimeException("Requête invalide: " + e.getResponseBodyAsString(), e);
         } catch (HttpClientErrorException e) {
-            log.error("Erreur lors de la création du feedback: {}", e.getMessage());
+            log.error("Erreur client lors de la création du feedback: {}", e.getMessage());
             throw new RuntimeException("Erreur lors de la création du feedback: " + e.getStatusCode(), e);
+        } catch (Exception e) {
+            log.error("Erreur inattendue lors de la création du feedback: {}", e.getMessage());
+            throw new RuntimeException("Erreur lors de la création du feedback", e);
         }
     }
 

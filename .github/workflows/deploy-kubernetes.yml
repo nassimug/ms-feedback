@@ -95,17 +95,17 @@ jobs:
 
       - name: Deploy application to Minikube
         run: |
-          echo "🚀 Deploying infrastructure (MySQL + MinIO)..."
+          echo "Deploying infrastructure (MySQL + MinIO)..."
           kubectl apply -f k8s/minikube/mysql.yaml -n ${{ env.NAMESPACE }}
           kubectl apply -f k8s/minikube/persistance.yaml -n ${{ env.NAMESPACE }}
           kubectl apply -f k8s/minikube/minio.yaml -n ${{ env.NAMESPACE }}
           
-          echo "🚀 Deploying applications (ms-persistance + ms-feedback)..."
+          echo "Deploying applications (ms-persistance + ms-feedback)..."
           kubectl apply -f k8s/minikube/deployment.yaml -n ${{ env.NAMESPACE }}
           kubectl apply -f k8s/minikube/service.yaml -n ${{ env.NAMESPACE }}
           kubectl apply -f k8s/minikube/configmap.yaml -n ${{ env.NAMESPACE }} || true
           
-          echo "📊 Current deployments:"
+          echo "Current deployments:"
           kubectl get deployments -n ${{ env.NAMESPACE }}
           
           echo "✅ Manifests applied (MySQL + MinIO + ms-persistance + ms-feedback)"

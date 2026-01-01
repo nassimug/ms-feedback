@@ -42,11 +42,16 @@ public class FeedbackServiceImpl implements FeedbackService {
                 .dateModification(LocalDateTime.now())
                 .build();
 
-        // Appel au microservice Persistance
-        FeedbackDTO savedFeedback = persistanceClient.createFeedback(feedbackDTO);
-
-        log.info("Feedback créé avec succès - ID: {}", savedFeedback.getId());
-        return mapToResponse(savedFeedback);
+        try {
+            // Appel au microservice Persistance
+            FeedbackDTO savedFeedback = persistanceClient.createFeedback(feedbackDTO);
+            log.info("Feedback créé avec succès - ID: {}", savedFeedback.getId());
+            return mapToResponse(savedFeedback);
+        } catch (org.springframework.web.client.HttpClientErrorException.Conflict e) {
+            log.warn("Feedback déjà existant pour utilisateur {} et recette {}",
+                     request.getUtilisateurId(), request.getRecetteId());
+            throw new IllegalArgumentException("Vous avez déjà noté cette recette.");
+        }
     }
 
     @Override
